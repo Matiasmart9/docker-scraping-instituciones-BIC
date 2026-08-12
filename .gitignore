@@ -1,0 +1,19 @@
+# Entornos y secretos
+.env
+
+# Backups y datos locales
+Backup_Scraping/
+*.xlsx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env/
+
+# Node/Frontend
+node_modules/
+dist/
+build/
+.DS_Store

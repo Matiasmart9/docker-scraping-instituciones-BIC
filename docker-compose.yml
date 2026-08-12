@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bicsa_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-bicsa_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bicsa_secure_password_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-bicsa_satelite_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bicsa_user} -d ${POSTGRES_DB:-bicsa_satelite_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bicsa_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-bicsa_user}:${POSTGRES_PASSWORD:-bicsa_secure_password_2026}@db:5432/${POSTGRES_DB:-bicsa_satelite_db}
+      - SECRET_KEY=${SECRET_KEY:-bicsa_super_secret_jwt_key_change_in_production_2026!}
+      - ADMIN_INITIAL_USER=${ADMIN_INITIAL_USER:-admin@bicsasatelite.com}
+      - ADMIN_INITIAL_PASSWORD=${ADMIN_INITIAL_PASSWORD:-AdminPassword2026!}
+      - SCRAPER_URL=http://scraper:8001
+      - TZ=America/Asuncion
+    volumes:
+      - ./Backup_Scraping:/app/Backup_Scraping
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scraper:
+    build:
+      context: ./scraper
+      dockerfile: Dockerfile
+    container_name: bicsa_scraper
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - BICSA_BASE_URL=${BICSA_BASE_URL:-https://bicquerywebapp.azurewebsites.net}
+      - BICSA_USER=${BICSA_USER:-usuario_demo}
+      - BICSA_PASSWORD=${BICSA_PASSWORD:-password_demo}
+      - BACKEND_URL=http://backend:8000
+      - TIMEZONE=${TIMEZONE:-America/Asuncion}
+      - HEADLESS=true
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bicsa_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
