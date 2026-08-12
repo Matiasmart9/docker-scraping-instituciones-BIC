@@ -319,6 +319,10 @@ HTML_DOCUMENT = """<!DOCTYPE html>
         <td>Instituciones operativas que cuentan con carga de XML al día y consultas permitidas.</td>
       </tr>
       <tr>
+        <td><strong>Activa (límite de consultas)</strong></td>
+        <td>Instituciones activas que han excedido o están cerca del límite de volumen de consultas permitido por BICSA.</td>
+      </tr>
+      <tr>
         <td><strong>Bloqueadas</strong></td>
         <td>Instituciones bloqueadas por BICSA por haber superado las 72 horas hábiles sin carga.</td>
       </tr>
@@ -343,10 +347,10 @@ HTML_DOCUMENT = """<!DOCTYPE html>
     🟢 <strong>NORMAL (Verde):</strong> Transcurrieron menos de 48 horas hábiles desde la última carga. La institución se encuentra al día.
   </div>
   <div class="warning-box">
-    🟡 <strong>ADVERTENCIA (Amarillo):</strong> Transcurrieron entre 48 y 72 horas hábiles sin carga. La institución dispone de menos de 24 horas hábiles antes de ser bloqueada.
+    🟡 <strong>Advertencia ( 48h-72h sin carga):</strong> Transcurrieron entre 48 y 72 horas hábiles sin carga. La institución dispone de menos de 24 horas hábiles antes de ser bloqueada.
   </div>
   <div class="critical-box">
-    🔴 <strong>CRÍTICO (Rojo):</strong> Transcurrieron más de 72 horas hábiles sin carga XML. Riesgo inminente de bloqueo por el proceso nocturno de BICSA.
+    🔴 <strong>Estado Crítico ( &gt;72h sin carga):</strong> Transcurrieron más de 72 horas hábiles sin carga XML. Riesgo inminente de bloqueo por el proceso nocturno de BICSA.
   </div>
 
   <div class="info-box">
@@ -359,15 +363,19 @@ HTML_DOCUMENT = """<!DOCTYPE html>
     <li><strong>Barra de Búsqueda:</strong> Filtra instantáneamente por el nombre de la institución o por el motivo de suspensión.</li>
   </ul>
 
-  <h2>1.6 Exportación de Reportes a Excel (.xlsx)</h2>
+  <h2>1.6 Exportación de Reportes a Excel (.xlsx) y Backup Diario</h2>
   <p>
-    Al hacer clic en el botón <strong>"Exportar Excel"</strong> en la barra superior, el sistema genera y descarga un archivo <code>.xlsx</code> estilizado profesionalmente, incluyendo encabezados navy, resumen de KPIs y formato de colores condicionales según el nivel de alerta.
+    El sistema genera de forma automatizada un único archivo de backup diario consolidado en la carpeta <code>Backup_Scraping</code>, nombrado bajo el estándar <code>BICSA_Reporte_YYYY_MM_DD.xlsx</code>. Esto previene la duplicación de archivos si ocurren múltiples extracciones en la misma fecha.
+  </p>
+  <p>
+    Al hacer clic en el botón <strong>"Exportar Excel"</strong>, los usuarios pueden descargar instantáneamente un reporte estilizado profesionalmente con la vista actual de los datos.
   </p>
 
-  <h2>1.7 Scraping Manual e Historial Auditable</h2>
+  <h2>1.7 Scraping Manual, Historial Auditable y Ajustes de Zona Horaria</h2>
   <ul>
     <li><strong>Ejecutar Scraping:</strong> Dispara de inmediato la extracción en vivo desde BICSA sin esperar al cron automático.</li>
-    <li><strong>Historial:</strong> Abre una ventana modal con la bitácora auditable de todos los cambios de estado detectados (con fecha, estado anterior, estado nuevo y origen de la corrida).</li>
+    <li><strong>Gestor de Historial:</strong> Abre una ventana modal avanzada que muestra el historial de reportes Excel diarios generados. Incluye filtros por año y mes, botones para descargar o eliminar archivos, y <strong>paginación de 31 filas (máximo un mes) por página con scroll integrado</strong>.</li>
+    <li><strong>Hora Local (Asunción, UTC-3):</strong> Tanto los KPIs del dashboard como los archivos exportados están ajustados estrictamente a la hora local oficial de Asunción, garantizando exactitud cronológica sin los desfases nativos de la nube.</li>
   </ul>
 
   <div class="page-break"></div>
