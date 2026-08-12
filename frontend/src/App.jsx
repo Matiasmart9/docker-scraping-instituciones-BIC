@@ -47,8 +47,8 @@ export default function App() {
   };
 
   // Formulario Login
-  const [loginEmail, setLoginEmail] = useState('admin@bicsasatelite.com');
-  const [loginPass, setLoginPass] = useState('AdminPassword2026!');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -424,6 +424,10 @@ export default function App() {
           <button className="btn btn-orange" onClick={() => setShowScrapeConfirmModal(true)} disabled={isScraping}>
             <RefreshCw size={16} className={isScraping ? 'spin' : ''} />
             {isScraping ? 'Scraping...' : 'Ejecutar Scraping'}
+          </button>
+
+          <button className="btn btn-secondary" onClick={() => setShowLogoutConfirmModal(true)} title="Cerrar Sesión">
+            <LogOut size={16} />
           </button>
 
         </div>
