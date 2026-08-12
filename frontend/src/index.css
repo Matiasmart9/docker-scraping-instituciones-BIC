@@ -109,14 +109,11 @@ body {
 }
 
 .brand-logo-img {
-  width: 42px;
-  height: 42px;
+  height: 46px;
+  width: auto;
   border-radius: 10px;
   object-fit: contain;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  background: #FFFFFF;
-  padding: 2px;
-  border: 1px solid var(--border-color);
 }
 
 .brand-title {
