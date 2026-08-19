@@ -205,6 +205,9 @@ class BicsaScraper:
                 elif "desvinculad" in text_norm:
                     categoria_detectada = "Desvinculada"
                     break
+                elif "suspendida carga" in text_norm:
+                    categoria_detectada = "Suspendida Carga"
+                    break
                 elif "suspendid" in text_norm:
                     categoria_detectada = "Suspendida"
                     break

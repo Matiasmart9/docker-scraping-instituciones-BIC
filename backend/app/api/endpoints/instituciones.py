@@ -21,7 +21,8 @@ def get_dashboard_kpis(db: Session = Depends(get_db), current_user = Depends(get
     
     total = len(estados)
     bloqueadas = sum(1 for e in estados if "BLOQUEA" in e.estado.upper() or "BLOQUEA" in e.categoria_tabla.upper())
-    suspendidas = sum(1 for e in estados if "SUSPEND" in e.estado.upper() or "SUSPEND" in e.categoria_tabla.upper())
+    suspendida_carga = sum(1 for e in estados if "SUSPENDIDA CARGA" in e.estado.upper() or "SUSPENDIDA CARGA" in e.categoria_tabla.upper())
+    suspendidas = sum(1 for e in estados if ("SUSPEND" in e.estado.upper() or "SUSPEND" in e.categoria_tabla.upper()) and not ("SUSPENDIDA CARGA" in e.estado.upper() or "SUSPENDIDA CARGA" in e.categoria_tabla.upper()))
     excepcion = sum(1 for e in estados if "EXCEPCI" in e.estado.upper() or "EXCEPCI" in e.categoria_tabla.upper())
     validacion = sum(1 for e in estados if "VALIDACI" in e.estado.upper() or "VALIDACI" in e.categoria_tabla.upper())
     desvinculadas = sum(1 for e in estados if "DESVINCULAD" in e.estado.upper() or "DESVINCULAD" in e.categoria_tabla.upper())
@@ -50,6 +51,7 @@ def get_dashboard_kpis(db: Session = Depends(get_db), current_user = Depends(get
         "Todas": total,
         "Activa": activas,
         "Suspendida": suspendidas,
+        "Suspendida Carga": suspendida_carga,
         "Bloqueada": bloqueadas,
         "Con excepción de carga": excepcion,
         "Desvinculada": desvinculadas,
@@ -62,6 +64,7 @@ def get_dashboard_kpis(db: Session = Depends(get_db), current_user = Depends(get
         "activas": activas,
         "bloqueadas": bloqueadas,
         "suspendidas": suspendidas,
+        "suspendida_carga": suspendida_carga,
         "excepcion_carga": excepcion,
         "validacion_xml": validacion,
         "en_alerta_critica": criticas,

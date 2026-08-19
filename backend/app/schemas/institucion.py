@@ -26,6 +26,7 @@ class KPIResponse(BaseModel):
     activas: int
     bloqueadas: int
     suspendidas: int
+    suspendida_carga: int = 0
     excepcion_carga: int
     validacion_xml: int
     en_alerta_critica: int
