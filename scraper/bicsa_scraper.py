@@ -226,11 +226,11 @@ class BicsaScraper:
                 row_texts = []
                 for c in cols:
                     text_val = c.get_text(strip=True)
-                    input_elem = c.find("input")
-                    if input_elem and input_elem.get("value"):
-                        val_in = input_elem.get("value").strip()
-                        if val_in:
-                            text_val = val_in
+                    if not text_val:
+                        # Solo extraer de inputs si no hay texto visible (ej: cajas numéricas) y no es hidden
+                        input_elem = c.find("input")
+                        if input_elem and input_elem.get("type") != "hidden" and input_elem.get("value"):
+                            text_val = input_elem.get("value").strip()
                     row_texts.append(text_val)
                 
                 # Eliminar columna inicial vacía (botón Modificar)
