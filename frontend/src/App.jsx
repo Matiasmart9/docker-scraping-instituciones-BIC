@@ -15,8 +15,7 @@ const TABS_CATEGORIAS = [
   "Con excepción de carga",
   "Desvinculada",
   "Validación de XML",
-  "Activa (límite de consultas)",
-  "Suspendida Carga"
+  "Activa (límite de consultas)"
 ];
 
 export default function App() {
