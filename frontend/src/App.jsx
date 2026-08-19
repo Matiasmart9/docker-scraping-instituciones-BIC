@@ -15,7 +15,8 @@ const TABS_CATEGORIAS = [
   "Con excepción de carga",
   "Desvinculada",
   "Validación de XML",
-  "Activa (límite de consultas)"
+  "Activa (límite de consultas)",
+  "Suspendida Carga"
 ];
 
 export default function App() {
@@ -273,8 +274,11 @@ export default function App() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      showToast(data.message || 'Scraping en proceso', 'success');
+      showToast(data.message || 'Scraping en proceso (los datos se actualizarán solos)', 'success');
+      // Hacer polling para actualizar los datos mientras termina en background
       setTimeout(fetchDashboardData, 3000);
+      setTimeout(fetchDashboardData, 10000);
+      setTimeout(fetchDashboardData, 25000);
     } catch (err) {
       showToast('Error al disparar scraping', 'error');
     } finally {
@@ -316,7 +320,7 @@ export default function App() {
           <div className="brand" style={{ marginBottom: '24px', justifyContent: 'center' }}>
             <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
             <div>
-              <div className="brand-title">BICSA Web Satélite V1.1</div>
+              <div className="brand-title">BICSA Web Satélite V1.2</div>
               <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
             </div>
           </div>
@@ -357,11 +361,11 @@ export default function App() {
 
             <button 
               type="submit" 
-              className="btn btn-primary" 
+              className="btn btn-orange" 
               style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}
               disabled={isLoggingIn}
             >
-              {isLoggingIn ? 'Iniciando...' : 'Entrar al Dashboard'}
+              {isLoggingIn ? 'Iniciando...' : 'Iniciar Sesión'}
             </button>
           </form>
         </div>
@@ -395,7 +399,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.1</div>
+            <div className="brand-title">BICSA Web Satélite V1.2</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>

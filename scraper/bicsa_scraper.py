@@ -205,6 +205,9 @@ class BicsaScraper:
                 elif "desvinculad" in text_norm:
                     categoria_detectada = "Desvinculada"
                     break
+                elif "suspendida carga" in text_norm:
+                    categoria_detectada = "Suspendida Carga"
+                    break
                 elif "suspendid" in text_norm:
                     categoria_detectada = "Suspendida"
                     break
@@ -249,10 +252,10 @@ class BicsaScraper:
                             fecha_carga = f"{parts[2]}-{parts[1]}-{parts[0]} 12:00:00"
                         except Exception:
                             fecha_carga = val
-                    elif val.upper() in ["ALTA", "BAJA", "N/A", "N.A"]:
+                    elif val.upper() in ["ALTA", "BAJA", "N/A", "N.A", "MEDIA"]:
                         calidad = val
-                    elif val.isdigit() and int(val) > 0:
-                        cant_max = int(val)
+                    elif val.replace('.', '').replace(',', '').isdigit() and len(val) <= 12:
+                        cant_max = int(val.replace('.', '').replace(',', ''))
                     elif any(k in val.lower() for k in ["gestión", "cese", "falta", "inconsistencia", "administrativa"]):
                         motivo = val
                     elif "vencimiento" in val.lower() or ("/" in val and len(val) > 10):
