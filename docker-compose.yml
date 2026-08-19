@@ -80,8 +80,6 @@ services:
   whatsapp:
     build: ./whatsapp
     container_name: bicsa_whatsapp
-    ports:
-      - "8002:8002"
     volumes:
       - ./whatsapp/auth_info:/app/auth_info
     restart: unless-stopped

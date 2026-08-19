@@ -658,7 +658,7 @@ export default function App() {
                   <Settings size={16} className="text-blue-500" /> Plantillas de Mensaje
                 </button>
                 <a 
-                  href="http://localhost:8002/qr"
+                  href="/qr"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary" 
