@@ -22,6 +22,22 @@ def init_db_seeds(db: Session):
     # 1. Crear tablas en la BD
     Base.metadata.create_all(bind=engine)
     
+    # 1.5. Aplicar parche para agregar columnas si faltan en BD existentes
+    from sqlalchemy import text
+    from sqlalchemy.exc import ProgrammingError
+    try:
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN telefonos_contacto VARCHAR[] DEFAULT '{}';"))
+        db.commit()
+    except Exception:
+        db.rollback()
+    
+    try:
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN contacto_actualizado_en TIMESTAMP WITH TIME ZONE;"))
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN contacto_actualizado_por VARCHAR(255);"))
+        db.commit()
+    except Exception:
+        db.rollback()
+
     # 2. Crear usuario Admin por defecto
     user = db.query(Usuario).filter(Usuario.email == ADMIN_USER).first()
     if not user:
