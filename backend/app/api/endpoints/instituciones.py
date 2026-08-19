@@ -104,6 +104,13 @@ def get_estado_actual(
                 ~EstadoActual.estado.ilike("%límite%"),
                 ~EstadoActual.estado.ilike("%limite%")
             )
+        elif cat_lower == "suspendida":
+            query = query.filter(
+                (EstadoActual.categoria_tabla.ilike("%suspendida%")) | (EstadoActual.estado.ilike("%suspendida%"))
+            ).filter(
+                ~EstadoActual.categoria_tabla.ilike("%suspendida carga%"),
+                ~EstadoActual.estado.ilike("%suspendida carga%")
+            )
         else:
             query = query.filter(
                 (EstadoActual.categoria_tabla.ilike(f"%{categoria}%")) | (EstadoActual.estado.ilike(f"%{categoria}%"))
