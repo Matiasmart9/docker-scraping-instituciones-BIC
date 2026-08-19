@@ -139,7 +139,8 @@ def get_estado_actual(
             "actualizado_el": r.actualizado_el,
             "horas_habiles_transcurridas": r.horas_habiles_transcurridas or 0.0,
             "horas_habiles_restantes": r.horas_habiles_restantes if r.horas_habiles_restantes is not None else 72.0,
-            "nivel_alerta": r.nivel_alerta or "NORMAL"
+            "nivel_alerta": r.nivel_alerta or "NORMAL",
+            "telefonos_contacto": r.institucion.telefonos_contacto if r.institucion and r.institucion.telefonos_contacto else []
         }
         response.append(item_dict)
 

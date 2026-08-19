@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.db.session import engine, Base, SessionLocal
 from app.models.institucion import Usuario, Institucion, EstadoActual
 from app.core.security import get_password_hash
-from app.api.endpoints import auth, instituciones, sync
+from app.api.endpoints import auth, instituciones, sync, contactos, notificaciones
 from app.services.business_logic import evaluar_nivel_alerta
 
 logging.basicConfig(level=logging.INFO)
@@ -78,6 +78,8 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(instituciones.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
+app.include_router(contactos.router)
+app.include_router(notificaciones.router)
 
 @app.get("/health")
 def health_check():

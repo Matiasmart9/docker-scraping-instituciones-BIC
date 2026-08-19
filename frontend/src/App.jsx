@@ -2,10 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { 
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
-  Sun, Moon
+  Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu
 } from 'lucide-react';
 
 const API_BASE = '/api/v1';
+
+const WhatsappIcon = ({ size = 18, className = "", style = {} }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    width={size} 
+    height={size} 
+    fill="currentColor" 
+    className={className}
+    style={{ display: 'inline-block', verticalAlign: 'middle', ...style }}
+  >
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/>
+  </svg>
+);
 
 const TABS_CATEGORIAS = [
   "Todas",
@@ -18,6 +31,81 @@ const TABS_CATEGORIAS = [
   "Activa (límite de consultas)",
   "Suspendida Carga"
 ];
+
+const TelefonoInput = ({ value, onChange, onValidChange }) => {
+  const PAISES = [
+    { code: '+595', name: 'Paraguay', digits: 9, flag: '🇵🇾' },
+    { code: '+54', name: 'Argentina', digits: 10, flag: '🇦🇷' },
+    { code: '+55', name: 'Brasil', digits: 11, flag: '🇧🇷' },
+    { code: '+591', name: 'Bolivia', digits: 8, flag: '🇧🇴' },
+    { code: '+598', name: 'Uruguay', digits: 8, flag: '🇺🇾' },
+    { code: '+56', name: 'Chile', digits: 9, flag: '🇨🇱' }
+  ];
+
+  // Extraer prefijo y número actual si existe
+  const initialCountry = value ? PAISES.find(p => value.startsWith(p.code)) || PAISES[0] : PAISES[0];
+  const initialNumber = value ? value.replace(initialCountry.code, '') : '';
+
+  const [country, setCountry] = useState(initialCountry);
+  const [number, setNumber] = useState(initialNumber);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fullNumber = number.trim() ? country.code + number.trim() : '';
+    
+    // Brasil puede ser 10 u 11 dígitos
+    let isValid = false;
+    if (country.name === 'Brasil') {
+      isValid = number.length === 10 || number.length === 11;
+    } else {
+      isValid = number.length === country.digits;
+    }
+
+    if (number.length > 0 && !isValid) {
+      setError(`Debe tener ${country.name === 'Brasil' ? '10 u 11' : country.digits} dígitos`);
+      onValidChange(false);
+    } else {
+      setError('');
+      onValidChange(isValid);
+    }
+
+    onChange(fullNumber);
+  }, [country, number]);
+
+  const handleNumberChange = (e) => {
+    const val = e.target.value.replace(/\D/g, ''); // solo dígitos
+    setNumber(val);
+  };
+
+  return (
+    <div style={{ marginBottom: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <select 
+          className="form-input" 
+          style={{ width: 'auto', flexShrink: 0, paddingRight: '20px' }}
+          value={country.code}
+          onChange={(e) => {
+            setCountry(PAISES.find(p => p.code === e.target.value));
+            setNumber('');
+          }}
+        >
+          {PAISES.map(p => (
+            <option key={p.code} value={p.code}>{p.flag} {p.code}</option>
+          ))}
+        </select>
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Ej: 981234567"
+          value={number}
+          onChange={handleNumberChange}
+          style={{ flexGrow: 1 }}
+        />
+      </div>
+      {error && <div style={{ color: '#EF4444', fontSize: '0.75rem', marginTop: '4px' }}>{error}</div>}
+    </div>
+  );
+};
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('bicsa_token') || '');
@@ -77,11 +165,62 @@ export default function App() {
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
   const [backupToDelete, setBackupToDelete] = useState(null);
 
+  // WhatsApp Contactos Modals
+  const [showContactosDropdown, setShowContactosDropdown] = useState(false);
+  const [showPendientesModal, setShowPendientesModal] = useState(false);
+  const [showContactosModal, setShowContactosModal] = useState(false);
+  const [contactosPendientes, setContactosPendientes] = useState([]);
+  const [contactosCargados, setContactosCargados] = useState([]);
+  const [isSendingWhatsApp, setIsSendingWhatsApp] = useState({});
+  const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [searchContactosQuery, setSearchContactosQuery] = useState('');
+  const [searchPendientesQuery, setSearchPendientesQuery] = useState('');
+
+  const DEFAULT_TEMPLATES = [
+    "⚠️ Recordatorio de carga XML\n\nInstitución: {institucion}\nNivel de alerta: {alerta}\nFecha última carga: {fecha}\n\nPor favor realizar la carga a la brevedad.",
+    "Hola, te escribimos desde BICSA.\nLa institución {institucion} tiene un nivel de alerta {alerta}.\nSu última carga fue el {fecha}.\nPor favor regularizar su carga.",
+    "Aviso Urgente: {institucion}\nSu estado es {alerta}. Su última carga de datos se registra el {fecha}.\nCumpla con la carga de datos para evitar sanciones."
+  ];
+
+  const [whatsappTemplates, setWhatsappTemplates] = useState(() => {
+    const saved = localStorage.getItem('bicsa_wa_templates');
+    return saved ? JSON.parse(saved) : DEFAULT_TEMPLATES;
+  });
+  const [activeTemplateIndex, setActiveTemplateIndex] = useState(() => {
+    const saved = localStorage.getItem('bicsa_wa_active_index');
+    return saved ? parseInt(saved) : 0;
+  });
+  const [showPlantillasModal, setShowPlantillasModal] = useState(false);
+  const [tempTemplates, setTempTemplates] = useState([...whatsappTemplates]);
+  const [tempActiveIndex, setTempActiveIndex] = useState(activeTemplateIndex);
+  
+  // Confirm modal state
+  const [confirmWaModal, setConfirmWaModal] = useState({ show: false, institucionId: null, nombre: "" });
+
   useEffect(() => {
     if (token) {
       fetchDashboardData();
+      fetchWhatsappStatus();
+      const interval = setInterval(() => {
+        fetchDashboardData();
+        fetchWhatsappStatus();
+      }, 60000);
+      return () => clearInterval(interval);
     }
-  }, [token, selectedTab, filterAlerta]);
+  }, [token, filterAlerta, selectedTab, searchQuery]);
+
+  const fetchWhatsappStatus = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`${API_BASE}/notificaciones/status`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setWhatsappStatus(data.conectado);
+      }
+    } catch (e) {
+      setWhatsappStatus(false);
+    }
+  };
 
   const showToast = (msg, type = 'info') => {
     setToastMessage({ msg, type });
@@ -170,6 +309,72 @@ export default function App() {
     } catch (err) {
       showToast('Error al cargar historial de backups', 'error');
     }
+  };
+
+  const fetchContactosPendientes = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`${API_BASE}/contactos/pendientes`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setContactosPendientes(data);
+      }
+    } catch (err) {
+      showToast('Error al cargar contactos pendientes', 'error');
+    }
+  };
+
+  const fetchContactosCargados = async () => {
+    try {
+      const headers = { 'Authorization': `Bearer ${token}` };
+      const res = await fetch(`${API_BASE}/contactos/cargados`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setContactosCargados(data);
+      }
+    } catch (err) {
+      showToast('Error al cargar contactos cargados', 'error');
+    }
+  };
+
+  const openPendientesModal = () => {
+    setShowContactosDropdown(false);
+    fetchContactosPendientes();
+    setShowPendientesModal(true);
+  };
+
+  const openContactosModal = () => {
+    setShowContactosDropdown(false);
+    fetchContactosCargados();
+    setShowContactosModal(true);
+  };
+
+  const enviarRecordatorioWhatsApp = async (id) => {
+    setIsSendingWhatsApp(prev => ({ ...prev, [id]: true }));
+    try {
+      const payload = {
+        mensaje_custom: whatsappTemplates[activeTemplateIndex]
+      };
+      const res = await fetch(`${API_BASE}/notificaciones/instituciones/${id}/enviar-recordatorio`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.detail || 'Error al enviar WhatsApp');
+      }
+      showToast(`Recordatorio de WhatsApp enviado correctamente a ${confirmWaModal.nombre}`, 'success');
+      setConfirmWaModal({ show: false, institucionId: null, nombre: "" });
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      setIsSendingWhatsApp(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
+  const confirmarEnvioWhatsApp = (id, nombre) => {
+    setConfirmWaModal({ show: true, institucionId: id, nombre });
   };
 
   const handleDownloadBackupFile = async (filename) => {
@@ -395,11 +600,11 @@ export default function App() {
       )}
 
       {/* Navbar Superior */}
-      <header className="glass-panel navbar">
+      <header className="glass-panel navbar" style={{ position: 'relative', zIndex: 100 }}>
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.2</div>
+            <div className="brand-title">BICSA Web Satélite V1.3</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>
@@ -408,6 +613,61 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginRight: '12px' }}>
             <span className="pulse-dot"></span>
             <span>Sistema en Línea</span>
+          </div>
+
+          {whatsappStatus !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: whatsappStatus ? '#10B981' : '#EF4444', marginRight: '12px', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: '20px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: whatsappStatus ? '#10B981' : '#EF4444' }}></div>
+              <span>WhatsApp: {whatsappStatus ? 'Conectado' : 'Desconectado'}</span>
+            </div>
+          )}
+
+          <div style={{ position: 'relative' }}>
+            <button className="btn btn-secondary" onClick={() => setShowContactosDropdown(!showContactosDropdown)} title="Menu Principal">
+              <Menu size={16} />
+              <span>Menú</span>
+              <ChevronDown size={14} />
+            </button>
+            
+            {showContactosDropdown && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', zIndex: 100, minWidth: '220px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '4px', border: 'none' }}
+                  onClick={openPendientesModal}
+                >
+                  <AlertTriangle size={16} className="text-orange-500" /> Pendiente Carga
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
+                  onClick={openContactosModal}
+                >
+                  <CheckCircle2 size={16} className="text-green-500" /> Contacto Instituciones
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
+                  onClick={() => {
+                    setShowContactosDropdown(false);
+                    setTempTemplates([...whatsappTemplates]);
+                    setTempActiveIndex(activeTemplateIndex);
+                    setShowPlantillasModal(true);
+                  }}
+                >
+                  <Settings size={16} className="text-blue-500" /> Plantillas de Mensaje
+                </button>
+                <a 
+                  href="http://localhost:8002/qr"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', textDecoration: 'none' }}
+                >
+                  <WhatsappIcon size={16} style={{ color: '#10B981' }} /> Lector QR WhatsApp
+                </a>
+              </div>
+            )}
           </div>
 
           <button className="btn btn-secondary" onClick={toggleTheme} title="Cambiar Tema (Claro / Oscuro)">
@@ -644,12 +904,38 @@ export default function App() {
                         )}
                       </td>
                       <td>
-                        {item.nivel_alerta === 'CRITICO' && <span className="badge badge-bloqueada">CRÍTICO (&gt;72h)</span>}
-                        {item.nivel_alerta === 'ADVERTENCIA' && <span className="badge badge-suspendida">ADVERTENCIA (48h-72h)</span>}
-                        {item.nivel_alerta === 'NORMAL' && <span className="badge badge-activa">NORMAL (&lt;48h)</span>}
-                        {item.nivel_alerta === 'DESVINCULADA' && <span className="badge badge-desvinculada">DESVINCULADA</span>}
-                        {item.nivel_alerta === 'BLOQUEADO' && <span className="badge badge-bloqueada">BLOQUEADA</span>}
-                        {item.nivel_alerta === 'SUSPENDIDA' && <span className="badge badge-suspendida">SUSPENDIDA</span>}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <div>
+                            {item.nivel_alerta === 'CRITICO' && <span className="badge badge-bloqueada">CRÍTICO (&gt;72h)</span>}
+                            {item.nivel_alerta === 'ADVERTENCIA' && <span className="badge badge-suspendida">ADVERTENCIA (48h-72h)</span>}
+                            {item.nivel_alerta === 'NORMAL' && <span className="badge badge-activa">NORMAL (&lt;48h)</span>}
+                            {item.nivel_alerta === 'DESVINCULADA' && <span className="badge badge-desvinculada">DESVINCULADA</span>}
+                            {item.nivel_alerta === 'BLOQUEADO' && <span className="badge badge-bloqueada">BLOQUEADA</span>}
+                            {item.nivel_alerta === 'SUSPENDIDA' && <span className="badge badge-suspendida">SUSPENDIDA</span>}
+                          </div>
+                          
+                          {/* Botón WhatsApp */}
+                          <button
+                            onClick={() => confirmarEnvioWhatsApp(item.id, item.nombre_institucion)}
+                            title={item.telefonos_contacto?.length ? "Enviar recordatorio por WhatsApp" : "Sin contacto cargado"}
+                            disabled={!item.telefonos_contacto?.length || isSendingWhatsApp[item.id]}
+                            style={{ 
+                              background: 'none', 
+                              border: 'none', 
+                              padding: 0, 
+                              cursor: (!item.telefonos_contacto?.length || isSendingWhatsApp[item.id]) ? 'not-allowed' : 'pointer',
+                              opacity: (!item.telefonos_contacto?.length || isSendingWhatsApp[item.id]) ? 0.4 : 1,
+                              transition: 'transform 0.1s'
+                            }}
+                            onMouseOver={(e) => { if (item.telefonos_contacto?.length && !isSendingWhatsApp[item.id]) e.currentTarget.style.transform = 'scale(1.1)' }}
+                            onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                          >
+                            {isSendingWhatsApp[item.id] ? 
+                              <RefreshCw size={18} className="spin" style={{ color: '#10B981' }} /> : 
+                              <WhatsappIcon size={20} style={{ color: (!item.telefonos_contacto?.length || isSendingWhatsApp[item.id]) ? '#64748B' : '#10B981' }} />
+                            }
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -848,6 +1134,350 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* MODAL: PENDIENTES CARGA CONTACTO */}
+      {showPendientesModal && (
+        <div className="modal-overlay" onClick={() => setShowPendientesModal(false)}>
+          <div className="glass-panel modal-lg" style={{ width: '100%', maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
+            <div className="kpi-header" style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={20} className="text-orange-500" />
+                Instituciones Pendientes de Carga de Contacto
+              </h2>
+              <button className="btn-close" onClick={() => setShowPendientesModal(false)}><XCircle size={20} /></button>
+            </div>
+            
+            {contactosPendientes.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+                <CheckCircle2 size={48} color="#10B981" style={{ margin: '0 auto 16px', opacity: 0.5 }} />
+                <p>¡Excelente! Todas las instituciones activas tienen un contacto cargado.</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '16px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Buscar por nombre de institución..."
+                    value={searchPendientesQuery}
+                    onChange={(e) => setSearchPendientesQuery(e.target.value)}
+                    style={{ width: '100%', maxWidth: '400px' }}
+                  />
+                </div>
+                <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                  <table className="bicsa-table">
+                  <thead>
+                    <tr>
+                      <th>Institución</th>
+                      <th>Estado</th>
+                      <th>Teléfono de Contacto (WhatsApp)</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contactosPendientes.map((inst, idx) => {
+                      if (searchPendientesQuery && !inst.nombre.toLowerCase().includes(searchPendientesQuery.toLowerCase())) {
+                        return null;
+                      }
+                      return (
+                      <tr key={inst.id}>
+                        <td style={{ fontWeight: 600 }}>{inst.nombre}</td>
+                        <td>{inst.estado_actual}</td>
+                        <td style={{ minWidth: '220px' }}>
+                          <TelefonoInput 
+                            value={inst.tempPhone || ''} 
+                            onChange={(val) => {
+                              const newArr = [...contactosPendientes];
+                              newArr[idx].tempPhone = val;
+                              setContactosPendientes(newArr);
+                            }}
+                            onValidChange={(isValid) => {
+                              const newArr = [...contactosPendientes];
+                              newArr[idx].isValid = isValid;
+                              setContactosPendientes(newArr);
+                            }}
+                          />
+                        </td>
+                        <td>
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            disabled={!inst.isValid}
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
+                                  method: 'PUT',
+                                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                  body: JSON.stringify({ telefonos: [inst.tempPhone], usuario: user?.email })
+                                });
+                                if (res.ok) {
+                                  showToast('Contacto cargado exitosamente', 'success');
+                                  setContactosPendientes(prev => prev.filter(p => p.id !== inst.id));
+                                } else {
+                                  throw new Error('Error al guardar contacto');
+                                }
+                              } catch (err) {
+                                showToast(err.message, 'error');
+                              }
+                            }}
+                          >
+                            Guardar
+                          </button>
+                        </td>
+                      </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONTACTO INSTITUCIONES CARGADAS */}
+      {showContactosModal && (
+        <div className="modal-overlay" onClick={() => setShowContactosModal(false)}>
+          <div className="glass-panel modal-lg" style={{ width: '100%', maxWidth: '800px', maxHeight: '80vh', overflowY: 'auto', padding: '24px' }} onClick={e => e.stopPropagation()}>
+            <div className="kpi-header" style={{ marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Phone size={20} className="text-green-500" />
+                Contactos de Instituciones
+              </h2>
+              <button className="btn-close" onClick={() => setShowContactosModal(false)}><XCircle size={20} /></button>
+            </div>
+            
+            {contactosCargados.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-secondary)' }}>
+                <p>No hay instituciones con contactos cargados.</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ marginBottom: '16px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Buscar por nombre de institución..."
+                    value={searchContactosQuery}
+                    onChange={(e) => setSearchContactosQuery(e.target.value)}
+                    style={{ width: '100%', maxWidth: '400px' }}
+                  />
+                </div>
+                <div className="table-responsive" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+                  <table className="bicsa-table">
+                    <thead>
+                      <tr>
+                        <th>Institución</th>
+                        <th>Teléfonos</th>
+                        <th>Última Act.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {contactosCargados.map((inst, idx) => {
+                        if (searchContactosQuery && !inst.nombre.toLowerCase().includes(searchContactosQuery.toLowerCase())) {
+                          return null;
+                        }
+                        return (
+                      <tr key={inst.id}>
+                        <td style={{ fontWeight: 600 }}>{inst.nombre}</td>
+                        <td>
+                          {inst.telefonos_contacto.map((tel, tIdx) => (
+                            <div key={tIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px' }}>{tel}</span>
+                              <button 
+                                className="text-red-500 hover:text-red-600" 
+                                title="Eliminar teléfono"
+                                onClick={async () => {
+                                  const newTels = inst.telefonos_contacto.filter((_, i) => i !== tIdx);
+                                  try {
+                                    const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                      body: JSON.stringify({ telefonos: newTels, usuario: user?.email })
+                                    });
+                                    if (res.ok) {
+                                      showToast('Teléfono eliminado', 'info');
+                                      const newCargados = [...contactosCargados];
+                                      newCargados[idx].telefonos_contacto = newTels;
+                                      if (newTels.length === 0) {
+                                        newCargados.splice(idx, 1);
+                                      }
+                                      setContactosCargados(newCargados);
+                                    }
+                                  } catch (e) { showToast('Error al eliminar', 'error'); }
+                                }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          ))}
+                          {inst.telefonos_contacto.length < 2 && !inst.isAdding && (
+                            <button className="btn btn-sm btn-secondary" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => {
+                              const newCargados = [...contactosCargados];
+                              newCargados[idx].isAdding = true;
+                              setContactosCargados(newCargados);
+                            }}>
+                              <Plus size={12} /> Agregar otro
+                            </button>
+                          )}
+                          {inst.isAdding && (
+                            <div style={{ marginTop: '8px', background: 'var(--card-bg)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <TelefonoInput 
+                                value={inst.tempPhone || ''} 
+                                onChange={(val) => {
+                                  const newArr = [...contactosCargados];
+                                  newArr[idx].tempPhone = val;
+                                  setContactosCargados(newArr);
+                                }}
+                                onValidChange={(isValid) => {
+                                  const newArr = [...contactosCargados];
+                                  newArr[idx].isValid = isValid;
+                                  setContactosCargados(newArr);
+                                }}
+                              />
+                              <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                <button className="btn btn-secondary btn-sm" onClick={() => {
+                                  const newCargados = [...contactosCargados];
+                                  newCargados[idx].isAdding = false;
+                                  setContactosCargados(newCargados);
+                                }}>Cancelar</button>
+                                <button className="btn btn-primary btn-sm" disabled={!inst.isValid} onClick={async () => {
+                                  const newTels = [...inst.telefonos_contacto, inst.tempPhone];
+                                  try {
+                                    const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                      body: JSON.stringify({ telefonos: newTels, usuario: user?.email })
+                                    });
+                                    if (res.ok) {
+                                      showToast('Teléfono agregado', 'success');
+                                      const newCargados = [...contactosCargados];
+                                      newCargados[idx].telefonos_contacto = newTels;
+                                      newCargados[idx].isAdding = false;
+                                      newCargados[idx].tempPhone = '';
+                                      setContactosCargados(newCargados);
+                                    }
+                                  } catch (e) { showToast('Error al agregar', 'error'); }
+                                }}>Guardar</button>
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          <div>{inst.contacto_actualizado_por}</div>
+                          <div>{inst.contacto_actualizado_en ? new Date(inst.contacto_actualizado_en).toLocaleDateString() : ''}</div>
+                        </td>
+                      </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Plantillas WhatsApp */}
+      {showPlantillasModal && (
+        <div className="modal-overlay" onClick={() => setShowPlantillasModal(false)}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', padding: '24px' }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <MessageCircle size={20} className="text-green-500" />
+                Configurar Textos de WhatsApp
+              </h2>
+              <button className="btn-close" onClick={() => setShowPlantillasModal(false)}><XCircle size={20} /></button>
+            </div>
+            
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Puedes usar las siguientes variables: {'{institucion}'}, {'{alerta}'}, {'{fecha}'}.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
+              {tempTemplates.map((text, idx) => (
+                <div key={idx} style={{ 
+                  border: tempActiveIndex === idx ? '2px solid #10B981' : '1px solid var(--border-color)', 
+                  borderRadius: '8px', 
+                  padding: '12px',
+                  background: tempActiveIndex === idx ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255, 255, 255, 0.02)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                      <input 
+                        type="radio" 
+                        name="activeTemplate" 
+                        checked={tempActiveIndex === idx} 
+                        onChange={() => setTempActiveIndex(idx)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      Plantilla {idx + 1} {tempActiveIndex === idx && <span className="badge badge-activa" style={{fontSize:'0.65rem'}}>Activa</span>}
+                    </label>
+                  </div>
+                  <textarea
+                    className="form-input"
+                    style={{ width: '100%', minHeight: '100px', resize: 'vertical' }}
+                    value={text}
+                    onChange={(e) => {
+                      const newT = [...tempTemplates];
+                      newT[idx] = e.target.value;
+                      setTempTemplates(newT);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+              <button className="btn btn-secondary" onClick={() => setShowPlantillasModal(false)}>
+                Cancelar
+              </button>
+              <button className="btn btn-primary" style={{ backgroundColor: '#f97316', borderColor: '#f97316' }} onClick={() => {
+                setWhatsappTemplates(tempTemplates);
+                setActiveTemplateIndex(tempActiveIndex);
+                localStorage.setItem('bicsa_wa_templates', JSON.stringify(tempTemplates));
+                localStorage.setItem('bicsa_wa_active_index', tempActiveIndex.toString());
+                setShowPlantillasModal(false);
+                showToast('Plantillas guardadas correctamente', 'success');
+              }}>
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Confirmación WhatsApp */}
+      {confirmWaModal.show && (
+        <div className="modal-overlay" onClick={() => setConfirmWaModal({ show: false, institucionId: null, nombre: "" })}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '24px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+            <WhatsappIcon size={48} style={{ color: '#10B981' }} />
+            <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>Confirmar Envío</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+              ¿Estás seguro que deseas enviar un recordatorio por WhatsApp a <strong>{confirmWaModal.nombre}</strong>?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setConfirmWaModal({ show: false, institucionId: null, nombre: "" })}
+                disabled={isSendingWhatsApp[confirmWaModal.institucionId]}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={{ backgroundColor: '#f97316', borderColor: '#f97316' }} 
+                onClick={() => enviarRecordatorioWhatsApp(confirmWaModal.institucionId)}
+                disabled={isSendingWhatsApp[confirmWaModal.institucionId]}
+              >
+                {isSendingWhatsApp[confirmWaModal.institucionId] ? 'Enviando...' : 'Sí, Enviar WhatsApp'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

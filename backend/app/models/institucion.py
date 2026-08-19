@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Float
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Float, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -14,6 +14,11 @@ class Institucion(Base):
     estado_actual = relationship("EstadoActual", back_populates="institucion", uselist=False, cascade="all, delete-orphan")
     snapshots = relationship("SnapshotDiario", back_populates="institucion", cascade="all, delete-orphan")
     historial = relationship("HistorialCambios", back_populates="institucion", cascade="all, delete-orphan")
+
+    # Datos de contacto para recordatorios (WhatsApp)
+    telefonos_contacto = Column(ARRAY(String), default=list)
+    contacto_actualizado_en = Column(DateTime(timezone=True), nullable=True)
+    contacto_actualizado_por = Column(String(255), nullable=True)
 
 class EstadoActual(Base):
     __tablename__ = "estado_actual"

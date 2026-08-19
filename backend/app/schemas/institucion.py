@@ -17,6 +17,7 @@ class EstadoActualResponse(BaseModel):
     horas_habiles_transcurridas: float
     horas_habiles_restantes: float
     nivel_alerta: str
+    telefonos_contacto: Optional[List[str]] = []
 
     class Config:
         from_attributes = True
