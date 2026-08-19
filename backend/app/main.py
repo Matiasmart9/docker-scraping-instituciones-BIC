@@ -24,18 +24,25 @@ def init_db_seeds(db: Session):
     
     # 1.5. Aplicar parche para agregar columnas si faltan en BD existentes
     from sqlalchemy import text
-    from sqlalchemy.exc import ProgrammingError
     try:
-        db.execute(text("ALTER TABLE instituciones ADD COLUMN telefonos_contacto VARCHAR[] DEFAULT '{}';"))
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN IF NOT EXISTS telefonos_contacto VARCHAR[] DEFAULT '{}';"))
         db.commit()
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error agregando telefonos_contacto: {e}")
         db.rollback()
     
     try:
-        db.execute(text("ALTER TABLE instituciones ADD COLUMN contacto_actualizado_en TIMESTAMP WITH TIME ZONE;"))
-        db.execute(text("ALTER TABLE instituciones ADD COLUMN contacto_actualizado_por VARCHAR(255);"))
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN IF NOT EXISTS contacto_actualizado_en TIMESTAMP WITH TIME ZONE;"))
         db.commit()
-    except Exception:
+    except Exception as e:
+        logger.error(f"Error agregando contacto_actualizado_en: {e}")
+        db.rollback()
+
+    try:
+        db.execute(text("ALTER TABLE instituciones ADD COLUMN IF NOT EXISTS contacto_actualizado_por VARCHAR(255);"))
+        db.commit()
+    except Exception as e:
+        logger.error(f"Error agregando contacto_actualizado_por: {e}")
         db.rollback()
 
     # 2. Crear usuario Admin por defecto
