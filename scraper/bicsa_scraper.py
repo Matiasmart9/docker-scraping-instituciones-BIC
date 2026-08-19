@@ -184,17 +184,16 @@ class BicsaScraper:
             logger.info(f"Inspección de Tabla idx={idx+1}: Filas={len(rows)}, Primer Elemento={first_name}")
 
             categoria_detectada = "Activa"
-            # Extraer textos anteriores a la tabla usando find_all_previous
+            # Buscar el encabezado más cercano hacia arriba (límite de 15 nodos para evitar leer el menú principal o leyendas)
             textos_anteriores = table.find_all_previous(string=True)
-            for text_node in textos_anteriores[:50]: # Buscar en los 50 nodos de texto anteriores
+            for text_node in textos_anteriores[:15]: 
                 text_raw = text_node.strip()
-                if not text_raw or len(text_raw) > 150:
+                if not text_raw or len(text_raw) > 120 or len(text_raw) < 4:
                     continue
                     
                 text_norm = text_raw.lower().replace("í", "i").replace("á", "a").replace("é", "e").replace("ó", "o").replace("ú", "u")
                 
-                # Identificar la categoría según las palabras clave en los encabezados
-                if "limite" in text_norm and ("consulta" in text_norm or "activa" in text_norm):
+                if "limite" in text_norm:
                     categoria_detectada = "Activa (límite de consultas)"
                     break
                 elif "excepcion" in text_norm:
@@ -212,7 +211,7 @@ class BicsaScraper:
                 elif "bloquead" in text_norm:
                     categoria_detectada = "Bloqueada"
                     break
-                elif "activa" in text_norm and "institucion" in text_norm:
+                elif "activa" in text_norm:
                     categoria_detectada = "Activa"
                     break
 
