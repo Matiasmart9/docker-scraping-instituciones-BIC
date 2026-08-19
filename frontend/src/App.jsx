@@ -316,7 +316,7 @@ export default function App() {
           <div className="brand" style={{ marginBottom: '24px', justifyContent: 'center' }}>
             <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
             <div>
-              <div className="brand-title">BICSA Web Satélite V1.0</div>
+              <div className="brand-title">BICSA Web Satélite V1.1</div>
               <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
             </div>
           </div>
@@ -395,7 +395,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.0</div>
+            <div className="brand-title">BICSA Web Satélite V1.1</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>

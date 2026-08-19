@@ -175,18 +175,6 @@ class BicsaScraper:
         tables = soup.find_all("table")
         logger.info(f"Se encontraron {len(tables)} tablas HTML en la página de BICSA.")
 
-        # Mapeo por orden de tablas si no hay identificador explícito en la página WebForms
-        mapping_fallback = {
-            3: "Activa",
-            4: "Activa",
-            5: "Suspendida",
-            6: "Bloqueada",
-            7: "Con excepción de carga",
-            8: "Desvinculada",
-            9: "Validación de XML",
-            10: "Activa (límite de consultas)"
-        }
-
         for idx, table in enumerate(tables):
             rows = table.find_all("tr")
             if len(rows) <= 1:
@@ -195,38 +183,38 @@ class BicsaScraper:
             first_name = rows[1].find_all("td")[0].get_text(strip=True) if len(rows[1].find_all("td")) > 0 else "N/A"
             logger.info(f"Inspección de Tabla idx={idx+1}: Filas={len(rows)}, Primer Elemento={first_name}")
 
-            # Determinar categoría por mapping_fallback si está en el mapa
-            if (idx + 1) in mapping_fallback:
-                categoria_detectada = mapping_fallback[idx + 1]
-            else:
-                categoria_detectada = "Activa"
-                # Intentar detectar desde encabezados anteriores
-                curr = table
-                for _ in range(12):
-                    curr = curr.previous_element
-                    if not curr:
-                        break
-                    text = getattr(curr, "text", "") or ""
-                    if text and len(text.strip()) < 120:
-                        text_norm = text.lower().replace("í", "i").replace("á", "a").replace("é", "e").replace("ó", "o").replace("ú", "u")
-                        if "limite" in text_norm:
-                            categoria_detectada = "Activa (límite de consultas)"
-                            break
-                        elif "excepcion" in text_norm:
-                            categoria_detectada = "Con excepción de carga"
-                            break
-                        elif "validacion" in text_norm:
-                            categoria_detectada = "Validación de XML"
-                            break
-                        elif "desvinculad" in text_norm:
-                            categoria_detectada = "Desvinculada"
-                            break
-                        elif "suspendid" in text_norm:
-                            categoria_detectada = "Suspendida"
-                            break
-                        elif "bloquead" in text_norm:
-                            categoria_detectada = "Bloqueada"
-                            break
+            categoria_detectada = "Activa"
+            # Extraer textos anteriores a la tabla usando find_all_previous
+            textos_anteriores = table.find_all_previous(string=True)
+            for text_node in textos_anteriores[:50]: # Buscar en los 50 nodos de texto anteriores
+                text_raw = text_node.strip()
+                if not text_raw or len(text_raw) > 150:
+                    continue
+                    
+                text_norm = text_raw.lower().replace("í", "i").replace("á", "a").replace("é", "e").replace("ó", "o").replace("ú", "u")
+                
+                # Identificar la categoría según las palabras clave en los encabezados
+                if "limite" in text_norm and ("consulta" in text_norm or "activa" in text_norm):
+                    categoria_detectada = "Activa (límite de consultas)"
+                    break
+                elif "excepcion" in text_norm:
+                    categoria_detectada = "Con excepción de carga"
+                    break
+                elif "validacion" in text_norm:
+                    categoria_detectada = "Validación de XML"
+                    break
+                elif "desvinculad" in text_norm:
+                    categoria_detectada = "Desvinculada"
+                    break
+                elif "suspendid" in text_norm:
+                    categoria_detectada = "Suspendida"
+                    break
+                elif "bloquead" in text_norm:
+                    categoria_detectada = "Bloqueada"
+                    break
+                elif "activa" in text_norm and "institucion" in text_norm:
+                    categoria_detectada = "Activa"
+                    break
 
             for row in rows[1:]:
                 cols = row.find_all("td")
