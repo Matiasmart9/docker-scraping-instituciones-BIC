@@ -223,7 +223,15 @@ class BicsaScraper:
                 if not cols:
                     continue
 
-                row_texts = [c.get_text(strip=True) for c in cols]
+                row_texts = []
+                for c in cols:
+                    text_val = c.get_text(strip=True)
+                    input_elem = c.find("input")
+                    if input_elem and input_elem.get("value"):
+                        val_in = input_elem.get("value").strip()
+                        if val_in:
+                            text_val = val_in
+                    row_texts.append(text_val)
                 
                 # Eliminar columna inicial vacía (botón Modificar)
                 if len(row_texts) > 1 and row_texts[0] == "":
@@ -243,23 +251,35 @@ class BicsaScraper:
                 motivo = None
                 vencimiento = None
 
-                for val in row_texts[1:]:
+                for idx, val in enumerate(row_texts[1:]):
+                    val_strip = val.strip() if val else ""
+                    if not val_strip:
+                        continue
+                        
                     # Formato fecha DD/MM/YYYY
-                    if re.match(r"\d{2}/\d{2}/\d{4}", val):
-                        # Convertir a YYYY-MM-DD para almacenamiento estándar
+                    if re.match(r"^\d{2}/\d{2}/\d{4}$", val_strip):
                         try:
-                            parts = val.split("/")
-                            fecha_carga = f"{parts[2]}-{parts[1]}-{parts[0]} 12:00:00"
+                            parts = val_strip.split("/")
+                            formatted_date = f"{parts[2]}-{parts[1]}-{parts[0]} 12:00:00"
                         except Exception:
-                            fecha_carga = val
-                    elif val.upper() in ["ALTA", "BAJA", "N/A", "N.A", "MEDIA"]:
-                        calidad = val
-                    elif val.replace('.', '').replace(',', '').isdigit() and len(val) <= 12:
-                        cant_max = int(val.replace('.', '').replace(',', ''))
-                    elif any(k in val.lower() for k in ["gestión", "cese", "falta", "inconsistencia", "administrativa"]):
-                        motivo = val
-                    elif "vencimiento" in val.lower() or ("/" in val and len(val) > 10):
-                        vencimiento = val
+                            formatted_date = val_strip
+                            
+                        # Si es una fecha en un índice más alto en 'Validación de XML', probablemente sea el vencimiento
+                        if idx >= 3 and categoria_detectada == "Validación de XML":
+                            vencimiento = formatted_date
+                        elif fecha_carga:
+                            # Si ya tenemos una fecha de carga, la segunda fecha que encontremos la asumimos como vencimiento
+                            vencimiento = formatted_date
+                        else:
+                            fecha_carga = formatted_date
+                    elif val_strip.upper() in ["ALTA", "BAJA", "N/A", "N.A", "MEDIA"]:
+                        calidad = val_strip.upper()
+                    elif val_strip.replace('.', '').replace(',', '').isdigit() and len(val_strip) <= 12:
+                        cant_max = int(val_strip.replace('.', '').replace(',', ''))
+                    elif any(k in val_strip.lower() for k in ["gestión", "cese", "falta", "inconsistencia", "administrativa"]):
+                        motivo = val_strip
+                    elif "vencimiento" in val_strip.lower() or ("/" in val_strip and len(val_strip) > 10):
+                        vencimiento = val_strip
 
                 inst_item = {
                     "nombre": nombre,
