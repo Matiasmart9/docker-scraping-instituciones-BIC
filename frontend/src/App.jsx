@@ -213,6 +213,10 @@ export default function App() {
     try {
       const headers = { 'Authorization': `Bearer ${token}` };
       const res = await fetch(`${API_BASE}/notificaciones/status`, { headers });
+      if (res.status === 401) {
+        confirmLogout();
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setWhatsappStatus(data.conectado);
@@ -268,6 +272,37 @@ export default function App() {
     showToast('Sesión cerrada exitosamente', 'info');
   };
 
+  // Auto-logout por inactividad (15 minutos)
+  useEffect(() => {
+    if (!token) return;
+
+    let inactivityTimer;
+    const timeout_ms = 15 * 60 * 1000; // 15 minutos
+
+    const resetTimer = () => {
+      clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        localStorage.removeItem('bicsa_token');
+        localStorage.removeItem('bicsa_user');
+        setToken('');
+        setUser(null);
+        showToast('Sesión cerrada automáticamente por inactividad (15 min)', 'info');
+      }, timeout_ms);
+    };
+
+    // Eventos que reinician el temporizador
+    const events = ['mousemove', 'mousedown', 'keypress', 'touchmove', 'scroll'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    // Inicializar temporizador al montar
+    resetTimer();
+
+    return () => {
+      clearTimeout(inactivityTimer);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [token]);
+
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
@@ -275,6 +310,10 @@ export default function App() {
 
       // 1. Cargar KPIs
       const resKpis = await fetch(`${API_BASE}/instituciones/kpis`, { headers });
+      if (resKpis.status === 401) {
+        confirmLogout();
+        return;
+      }
       if (resKpis.ok) {
         const dataKpis = await resKpis.json();
         setKpis(dataKpis);
@@ -604,7 +643,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.3</div>
+            <div className="brand-title">BICSA Web Satélite V1.4</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>
