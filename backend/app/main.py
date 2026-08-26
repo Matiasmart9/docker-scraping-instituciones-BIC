@@ -5,6 +5,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from app.db.session import engine, Base, SessionLocal
 from app.models.institucion import Usuario, Institucion, EstadoActual
@@ -17,6 +21,8 @@ init_firebase()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("backend_app")
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
 
 ADMIN_USER = os.getenv("ADMIN_INITIAL_USER", "admin@bicsasatelite.com")
 ADMIN_PASS = os.getenv("ADMIN_INITIAL_PASSWORD", "AdminPassword2026!")
@@ -90,10 +96,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
 # Configurar CORS
+FRONTEND_URLS = [
+    "http://localhost:3000",
+    "http://141.148.159.57",
+    "http://141.148.159.57:3000",
+    "https://141.148.159.57"
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=FRONTEND_URLS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
