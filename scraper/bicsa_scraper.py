@@ -246,6 +246,10 @@ class BicsaScraper:
                     continue
 
                 nombre = row_texts[0].strip()[:245]
+                
+                if "HA OCURRIDO UN ERROR" in nombre.upper() or "CONTACTE A SU ADMINISTRADOR" in nombre.upper() or "☹" in nombre:
+                    raise Exception("El portal de BICSA ha devuelto una página de error (posible cierre de sesión o timeout). Abortando.")
+
                 if not nombre or len(nombre) > 200 or any(k in nombre.upper() for k in ["MODIFICAR", "NOMBRE INSTITUCIÓN", "SISTEMA BIC", "ESTADO INSTITUCIONES", "BÚSQUEDA"]):
                     continue
 
