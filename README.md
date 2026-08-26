@@ -25,7 +25,7 @@ docker-portal-estado-institucionesBIC/
 │   ├── Dockerfile
 │   ├── firebase-adminsdk.json# Credenciales de Google Cloud (No subir a Git)
 │   ├── app/
-│   │   ├── main.py           # Aplicación FastAPI
+│   │   ├── main.py           # Aplicación FastAPI (Con Rate Limiting y CORS estricto)
 │   │   ├── core/             # Seguridad con Firebase Auth
 │   │   ├── db/               # Conexión SQLAlchemy PostgreSQL
 │   │   └── api/              # Endpoints API (/auth, /instituciones, /internal)
@@ -116,13 +116,27 @@ cd docker-portal-estado-institucionesBIC
 
 # Configurar variables de entorno de producción
 cp .env.example .env
-nano .env
+nano .env  # (Asegúrate de agregar DOMAIN=tu-dominio.duckdns.org para Coolify/Traefik)
+
+# IMPORTANTE: Solución al bug de red saliente en Oracle Cloud + Ubuntu
+# Esto permite que los contenedores de Docker tengan acceso a Internet para descargar SSL
+sudo iptables -I FORWARD -j ACCEPT
+sudo apt-get update && sudo apt-get install -y iptables-persistent
+sudo netfilter-persistent save
 
 # Levantar servicios
 docker compose up -d
 ```
 
----
+### 3. Integración con Coolify y Traefik (HTTPS)
+El proyecto está optimizado para integrarse nativamente con el proxy inverso **Traefik** gestionado por **Coolify**.
+En `docker-compose.yml`, el contenedor `frontend` se adjunta a la red `coolify` y expone etiquetas (`labels`) para auto-descubrimiento. Traefik intercepta el dominio definido, genera el certificado SSL con Let's Encrypt y balancea la carga automáticamente, manteniendo cerrados y seguros todos los demás puertos del host.
+
+### 4. Capas de Seguridad Implementadas (V1.5)
+- **Firebase Auth:** Las rutas API exigen validación de token JWT firmado criptográficamente.
+- **Puertos Internos:** Los servicios `backend` (8000), `scraper` (8001) y `db` (5432) solo escuchan tráfico interno (127.0.0.1 o red de docker) y no están expuestos al público general.
+- **Rate Limiting:** Se utiliza `slowapi` (120 req/min) para mitigar ataques DDoS y fuerza bruta.
+- **CORS Estricto:** Se valida el `DOMAIN` en los orígenes permitidos de FastAPI para prevenir CSRF/XSS.
 
 ## ⏰ Programación de Scraping y Reglas de Negocio
 

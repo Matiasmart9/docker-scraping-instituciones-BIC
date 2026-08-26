@@ -77,15 +77,13 @@ días de la semana).
 
 ### Entorno de producción
 - VM propia en **Oracle Cloud (Oracle Cloud Free Tier - Ampere A1)**.
-- SO: **Ubuntu 22.04.5**, arquitectura **ARM64 (aarch64)** — IMPORTANTE.
-- Acceso administrado también vía Webmin (panel), pero el despliegue se hará por
-  Docker/SSH.
-- Recursos disponibles: ~11.65 GiB RAM, ~96 GiB disco, sobra de sobra para este proyecto.
+- SO: **Ubuntu 22.04.5**, arquitectura **ARM64 (aarch64)**.
+- **Coolify + Traefik Proxy:** El servidor ejecuta Coolify en producción. El tráfico web se enruta a través de Traefik, el cual genera automáticamente certificados Let's Encrypt (HTTPS) para el dominio mapeado en DuckDNS (`bicsa-panel-estado-inst.duckdns.org`).
+- **Networking Iptables:** Debido a restricciones nativas de Ubuntu en Oracle Cloud, se agregó una regla `iptables -I FORWARD -j ACCEPT` para permitir el acceso a internet saliente de los contenedores Docker (necesario para la validación SSL).
+- **Puertos cerrados:** Por seguridad, todos los puertos internos (`8000`, `8001`, `5432`) están expuestos únicamente hacia la red local `127.0.0.1` o integrados exclusivamente en la red interna de Docker (`coolify` y `default`), evitando exposición pública.
 
 ### Implicancia clave: multi-arquitectura
-Las imágenes Docker deben buildearse para **linux/amd64** (desarrollo en Windows) y
-**linux/arm64** (producción en Oracle), usando `docker buildx` con soporte multi-plataforma.
-Prestar especial atención a que la imagen de Playwright/Chromium tenga soporte arm64.
+Las imágenes Docker deben buildearse para **linux/amd64** (desarrollo en Windows) y **linux/arm64** (producción en Oracle), usando `docker buildx` con soporte multi-plataforma.
 
 ### Stack propuesto
 - **Scraper/Login**: Python + Playwright (headless Chromium), porque el portal
@@ -116,14 +114,11 @@ Prestar especial atención a que la imagen de Playwright/Chromium tenga soporte 
   fecha_deteccion, corrida_origen (07hs/16hs).
 
 ### Seguridad
-- Credenciales de BICSA y credenciales de la base de datos deben ir en variables
-  de entorno / secrets, nunca hardcodeadas ni versionadas en git.
-- El dashboard debe tener su propio login (independiente del de BICSA).
-- Confirmar con BICSA que este uso automatizado de mis propias credenciales es
-  aceptable, para evitar bloqueo de cuenta por actividad "sospechosa" (nota para
-  mí, no para el desarrollo).
-
----
+- **Credenciales y Entorno:** Credenciales de BICSA y base de datos van en `.env`.
+- **Firebase Auth:** El dashboard utiliza Firebase Authentication, y el backend valida rigurosamente cada Token JWT. Las credenciales de Admin SDK (`firebase-adminsdk.json`) nunca se suben al repositorio.
+- **Rate Limiting:** El backend (FastAPI) utiliza `slowapi` limitando peticiones a `120 req/minuto` para evitar abusos o ataques DDoS.
+- **CORS Estricto:** Los orígenes cruzados (CORS) están estrictamente limitados al dominio en producción (`DOMAIN`), bloqueando peticiones maliciosas de terceros.
+- Confirmar con BICSA que este uso automatizado de mis propias credenciales es aceptable, para evitar bloqueo de cuenta.
 
 ## Qué necesito que Antigravity/Claude haga en esta primera etapa
 
