@@ -11,6 +11,9 @@ from app.models.institucion import Usuario, Institucion, EstadoActual
 from app.core.security import get_password_hash
 from app.api.endpoints import auth, instituciones, sync, contactos, notificaciones
 from app.services.business_logic import evaluar_nivel_alerta
+from app.core.firebase_config import init_firebase
+
+init_firebase()
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("backend_app")

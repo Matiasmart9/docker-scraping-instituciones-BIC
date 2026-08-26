@@ -183,6 +183,11 @@ class BicsaScraper:
             first_name = rows[1].find_all("td")[0].get_text(strip=True) if len(rows[1].find_all("td")) > 0 else "N/A"
             logger.info(f"Inspección de Tabla idx={idx+1}: Filas={len(rows)}, Primer Elemento={first_name}")
 
+            # Evitar tablas maestras o de layout: si la tabla contiene otra tabla anidada, la omitimos
+            if table.find("table"):
+                logger.info(f"Omitiendo tabla idx={idx+1} porque contiene tablas anidadas (es layout).")
+                continue
+
             categoria_detectada = "Activa"
             # Buscar el encabezado más cercano hacia arriba (límite de 15 nodos para evitar leer el menú principal o leyendas)
             textos_anteriores = table.find_all_previous(string=True)

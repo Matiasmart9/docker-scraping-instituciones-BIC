@@ -31,22 +31,40 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+from firebase_admin import auth as firebase_auth
+
+import logging
+logger = logging.getLogger(__name__)
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     from app.models.institucion import Usuario
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="No se pudieron validar las credenciales de acceso.",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except JWTError:
-        raise credentials_exception
+        # Validar token con Firebase Admin SDK
+        decoded_token = firebase_auth.verify_id_token(token)
+        email = decoded_token.get("email")
+        if not email:
+            raise ValueError("Token no contiene email")
+    except Exception as e:
+        logger.error(f"Error de validación Firebase: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Error validando token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         
+    # Buscar el usuario en la base de datos local para la relación con SQLAlchemy
     user = db.query(Usuario).filter(Usuario.email == email).first()
+    
     if user is None:
-        raise credentials_exception
+        # Si el usuario se logueó exitosamente por Firebase pero no existe en nuestra DB,
+        # lo creamos automáticamente para no romper la app (opcional, o lanzar error).
+        user = Usuario(
+            email=email,
+            nombre_completo=decoded_token.get("name", "Usuario Firebase"),
+            hashed_password="firebase_managed_no_local_password"
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        
     return user

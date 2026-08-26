@@ -4,6 +4,8 @@ import {
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
   Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu
 } from 'lucide-react';
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "./firebase";
 
 const API_BASE = '/api/v1';
 
@@ -237,27 +239,16 @@ export default function App() {
     setLoginError('');
 
     try {
-      const formData = new FormData();
-      formData.append('username', loginEmail);
-      formData.append('password', loginPass);
-
-      const res = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error('Credenciales inválidas');
-      }
-
-      const data = await res.json();
-      localStorage.setItem('bicsa_token', data.access_token);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPass);
+      const firebaseToken = await userCredential.user.getIdToken();
+      
+      localStorage.setItem('bicsa_token', firebaseToken);
       localStorage.setItem('bicsa_user', JSON.stringify({ email: loginEmail }));
-      setToken(data.access_token);
+      setToken(firebaseToken);
       setUser({ email: loginEmail });
       showToast('Sesión iniciada correctamente', 'success');
     } catch (err) {
-      setLoginError(err.message || 'Error al iniciar sesión');
+      setLoginError('Credenciales inválidas o error de red');
     } finally {
       setIsLoggingIn(false);
     }
@@ -564,7 +555,7 @@ export default function App() {
           <div className="brand" style={{ marginBottom: '24px', justifyContent: 'center' }}>
             <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
             <div>
-              <div className="brand-title">BICSA Web Satélite V1.4</div>
+              <div className="brand-title">BICSA Web Satélite V1.5</div>
               <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
             </div>
           </div>
@@ -643,7 +634,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.4</div>
+            <div className="brand-title">BICSA Web Satélite V1.5</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>
