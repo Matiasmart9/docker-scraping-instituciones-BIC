@@ -359,7 +359,9 @@ export default function App() {
       const res = await fetch(`${API_BASE}/contactos/pendientes`, { headers });
       if (res.ok) {
         const data = await res.json();
-        setContactosPendientes(data);
+        setContactosPendientes(data.map(i => ({ ...i, tempPhones: [{ value: '', isValid: false }] })));
+      } else {
+        showToast('Error al cargar contactos pendientes', 'error');
       }
     } catch (err) {
       showToast('Error al cargar contactos pendientes', 'error');
@@ -678,7 +680,7 @@ export default function App() {
                   style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '4px', border: 'none' }}
                   onClick={openPendientesModal}
                 >
-                  <AlertTriangle size={16} className="text-orange-500" /> Pendiente Carga
+                  <AlertTriangle size={16} className="text-orange-500" /> Cargar Contacto
                 </button>
                 <button 
                   className="btn btn-secondary" 
@@ -1229,30 +1231,46 @@ export default function App() {
                         <td style={{ fontWeight: 600 }}>{inst.nombre}</td>
                         <td>{inst.estado_actual}</td>
                         <td style={{ minWidth: '220px' }}>
-                          <TelefonoInput 
-                            value={inst.tempPhone || ''} 
-                            onChange={(val) => {
+                          {inst.tempPhones.map((tp, pIdx) => (
+                            <div key={pIdx} style={{ marginBottom: '12px' }}>
+                              <TelefonoInput 
+                                value={tp.value} 
+                                onChange={(val) => {
+                                  const newArr = [...contactosPendientes];
+                                  newArr[idx].tempPhones[pIdx].value = val;
+                                  setContactosPendientes(newArr);
+                                }}
+                                onValidChange={(isValid) => {
+                                  const newArr = [...contactosPendientes];
+                                  newArr[idx].tempPhones[pIdx].isValid = isValid;
+                                  setContactosPendientes(newArr);
+                                }}
+                              />
+                            </div>
+                          ))}
+                          <button 
+                            className="btn btn-sm btn-secondary" 
+                            style={{ marginTop: '4px', padding: '2px 8px', fontSize: '0.75rem' }} 
+                            onClick={() => {
                               const newArr = [...contactosPendientes];
-                              newArr[idx].tempPhone = val;
+                              newArr[idx].tempPhones.push({ value: '', isValid: false });
                               setContactosPendientes(newArr);
                             }}
-                            onValidChange={(isValid) => {
-                              const newArr = [...contactosPendientes];
-                              newArr[idx].isValid = isValid;
-                              setContactosPendientes(newArr);
-                            }}
-                          />
+                          >
+                            <Plus size={12} /> Agregar otro
+                          </button>
                         </td>
                         <td>
                               <button 
                                 className="btn btn-blue btn-sm" 
-                                disabled={!inst.isValid}
+                                disabled={inst.tempPhones.some(tp => !tp.isValid) || inst.tempPhones.length === 0}
                                 onClick={async () => {
                               try {
+                                const tels = inst.tempPhones.filter(tp => tp.isValid).map(tp => tp.value);
                                 const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
                                   method: 'PUT',
                                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                                  body: JSON.stringify({ telefonos: [inst.tempPhone], usuario: user?.email })
+                                  body: JSON.stringify({ telefonos: tels, usuario: user?.email })
                                 });
                                 if (res.ok) {
                                   showToast('Contacto cargado exitosamente', 'success');
