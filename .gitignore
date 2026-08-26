@@ -19,3 +19,6 @@ build/
 .DS_Store
 whatsapp/auth_info/
 backend/firebase-adminsdk.json
+
+# Docker overrides locales
+docker-compose.override.yml

@@ -38,33 +38,44 @@ async def enviar_recordatorio(institucion_id: int, req: Optional[RecordatorioReq
         else:
             fecha_ultima = estado_actual.fecha_ultima_carga.strftime("%d/%m/%Y")
 
-    if req and req.mensaje_custom:
-        mensaje = req.mensaje_custom.format(
-            institucion=institucion.nombre,
-            alerta=nivel_alerta,
-            fecha=fecha_ultima
-        )
-    else:
-        mensaje = (
-            f"⚠️ Recordatorio de carga XML\n\n"
-            f"Institución: {institucion.nombre}\n"
-            f"Nivel de alerta: {nivel_alerta}\n"
-            f"Fecha de última carga: {fecha_ultima}\n\n"
-            f"Por favor realizar la carga a la brevedad."
-        )
-
     try:
         async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "http://whatsapp:8002/send",
-                json={"telefonos": institucion.telefonos_contacto, "mensaje": mensaje},
-                timeout=15.0
-            )
-        
-        if resp.status_code == 200:
-            return resp.json()
-        else:
-            raise HTTPException(500, f"Error del servicio WhatsApp: {resp.text}")
+            # Enviar mensaje individual por cada contacto
+            respuestas = []
+            for contacto_str in institucion.telefonos_contacto:
+                partes = contacto_str.split("|")
+                telefono = partes[0].strip()
+                nombre_contacto = partes[1].strip() if len(partes) > 1 and partes[1].strip() else "Representante"
+
+                if req and req.mensaje_custom:
+                    mensaje = req.mensaje_custom.format(
+                        institucion=institucion.nombre,
+                        alerta=nivel_alerta,
+                        fecha=fecha_ultima,
+                        nombre=nombre_contacto
+                    )
+                else:
+                    mensaje = (
+                        f"⚠️ Recordatorio de carga XML\n\n"
+                        f"Hola {nombre_contacto},\n"
+                        f"Institución: {institucion.nombre}\n"
+                        f"Nivel de alerta: {nivel_alerta}\n"
+                        f"Fecha de última carga: {fecha_ultima}\n\n"
+                        f"Por favor realizar la carga a la brevedad."
+                    )
+                
+                resp = await client.post(
+                    "http://whatsapp:8002/send",
+                    json={"telefonos": [telefono], "mensaje": mensaje},
+                    timeout=15.0
+                )
+                
+                if resp.status_code == 200:
+                    respuestas.append(resp.json())
+                else:
+                    raise HTTPException(500, f"Error del servicio WhatsApp para {telefono}: {resp.text}")
+                    
+        return {"status": "ok", "detalles": respuestas}
     except Exception as e:
         raise HTTPException(500, f"No se pudo contactar al servicio de WhatsApp: {str(e)}")
 

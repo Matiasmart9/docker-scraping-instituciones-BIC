@@ -200,6 +200,17 @@ body {
   box-shadow: 0 6px 20px rgba(249, 115, 22, 0.5);
 }
 
+.btn-blue {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  color: white;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.35);
+}
+
+.btn-blue:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
 .text-cyan {
   color: #06B6D4 !important;
 }

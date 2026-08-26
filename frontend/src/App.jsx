@@ -45,11 +45,13 @@ const TelefonoInput = ({ value, onChange, onValidChange }) => {
   ];
 
   // Extraer prefijo y número actual si existe
-  const initialCountry = value ? PAISES.find(p => value.startsWith(p.code)) || PAISES[0] : PAISES[0];
-  const initialNumber = value ? value.replace(initialCountry.code, '') : '';
+  const [valNumber, valName] = value ? value.split('|') : ['', ''];
+  const initialCountry = valNumber ? PAISES.find(p => valNumber.startsWith(p.code)) || PAISES[0] : PAISES[0];
+  const initialNumber = valNumber ? valNumber.replace(initialCountry.code, '') : '';
 
   const [country, setCountry] = useState(initialCountry);
   const [number, setNumber] = useState(initialNumber);
+  const [name, setName] = useState(valName);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -71,8 +73,8 @@ const TelefonoInput = ({ value, onChange, onValidChange }) => {
       onValidChange(isValid);
     }
 
-    onChange(fullNumber);
-  }, [country, number]);
+    onChange(fullNumber ? `${fullNumber}|${name.trim()}` : '');
+  }, [country, number, name]);
 
   const handleNumberChange = (e) => {
     const val = e.target.value.replace(/\D/g, ''); // solo dígitos
@@ -101,6 +103,16 @@ const TelefonoInput = ({ value, onChange, onValidChange }) => {
           placeholder="Ej: 981234567"
           value={number}
           onChange={handleNumberChange}
+          style={{ flexGrow: 1 }}
+        />
+      </div>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '8px' }}>
+        <input
+          type="text"
+          className="form-input"
+          placeholder="Nombre del Contacto (Opcional)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
           style={{ flexGrow: 1 }}
         />
       </div>
@@ -179,8 +191,8 @@ export default function App() {
   const [searchPendientesQuery, setSearchPendientesQuery] = useState('');
 
   const DEFAULT_TEMPLATES = [
-    "⚠️ Recordatorio de carga XML\n\nInstitución: {institucion}\nNivel de alerta: {alerta}\nFecha última carga: {fecha}\n\nPor favor realizar la carga a la brevedad.",
-    "Hola, te escribimos desde BICSA.\nLa institución {institucion} tiene un nivel de alerta {alerta}.\nSu última carga fue el {fecha}.\nPor favor regularizar su carga.",
+    "⚠️ Recordatorio de carga XML\n\nHola {nombre},\nInstitución: {institucion}\nNivel de alerta: {alerta}\nFecha última carga: {fecha}\n\nPor favor realizar la carga a la brevedad.",
+    "Hola {nombre}, te escribimos desde BICSA.\nLa institución {institucion} tiene un nivel de alerta {alerta}.\nSu última carga fue el {fecha}.\nPor favor regularizar su carga.",
     "Aviso Urgente: {institucion}\nSu estado es {alerta}. Su última carga de datos se registra el {fecha}.\nCumpla con la carga de datos para evitar sanciones."
   ];
 
@@ -692,18 +704,21 @@ export default function App() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary" 
-                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', textDecoration: 'none' }}
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', textDecoration: 'none', marginBottom: '4px' }}
                 >
                   <WhatsappIcon size={16} style={{ color: '#10B981' }} /> Lector QR WhatsApp
                 </a>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={toggleTheme} 
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none' }}
+                >
+                  {isDarkMode ? <Sun size={16} className="text-yellow-500" /> : <Moon size={16} className="text-indigo-500" />} 
+                  <span>{isDarkMode ? 'Tema Claro' : 'Tema Oscuro'}</span>
+                </button>
               </div>
             )}
           </div>
-
-          <button className="btn btn-secondary" onClick={toggleTheme} title="Cambiar Tema (Claro / Oscuro)">
-            {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            <span>{isDarkMode ? 'Tema Claro' : 'Tema Oscuro'}</span>
-          </button>
 
           <button className="btn btn-secondary" onClick={fetchBackupsList} title="Ver Historial de Backups Excel">
             <History size={16} />
@@ -1229,10 +1244,10 @@ export default function App() {
                           />
                         </td>
                         <td>
-                          <button 
-                            className="btn btn-primary btn-sm"
-                            disabled={!inst.isValid}
-                            onClick={async () => {
+                              <button 
+                                className="btn btn-blue btn-sm" 
+                                disabled={!inst.isValid || isSavingContacto === inst.id}
+                                onClick={async () => {
                               try {
                                 const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
                                   method: 'PUT',
@@ -1311,13 +1326,18 @@ export default function App() {
                       <tr key={inst.id}>
                         <td style={{ fontWeight: 600 }}>{inst.nombre}</td>
                         <td>
-                          {inst.telefonos_contacto.map((tel, tIdx) => (
+                          {inst.telefonos_contacto.map((telStr, tIdx) => {
+                            const [telNumber, telName] = telStr.split('|');
+                            return (
                             <div key={tIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px' }}>{tel}</span>
+                              <span style={{ fontFamily: 'monospace', background: 'rgba(0,0,0,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                                {telName ? `${telName} - ${telNumber}` : telNumber}
+                              </span>
                               <button 
                                 className="text-red-500 hover:text-red-600" 
                                 title="Eliminar teléfono"
                                 onClick={async () => {
+                                  if (!window.confirm(`¿Estás seguro que deseas eliminar el contacto ${telName || telNumber}?`)) return;
                                   const newTels = inst.telefonos_contacto.filter((_, i) => i !== tIdx);
                                   try {
                                     const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
@@ -1340,7 +1360,8 @@ export default function App() {
                                 <Trash2 size={14} />
                               </button>
                             </div>
-                          ))}
+                            );
+                          })}
                           {inst.telefonos_contacto.length < 2 && !inst.isAdding && (
                             <button className="btn btn-sm btn-secondary" style={{ marginTop: '4px', padding: '2px 8px', fontSize: '0.75rem' }} onClick={() => {
                               const newCargados = [...contactosCargados];
@@ -1371,7 +1392,7 @@ export default function App() {
                                   newCargados[idx].isAdding = false;
                                   setContactosCargados(newCargados);
                                 }}>Cancelar</button>
-                                <button className="btn btn-primary btn-sm" disabled={!inst.isValid} onClick={async () => {
+                                <button className="btn btn-blue btn-sm" disabled={!inst.isValid} onClick={async () => {
                                   const newTels = [...inst.telefonos_contacto, inst.tempPhone];
                                   try {
                                     const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
@@ -1422,7 +1443,7 @@ export default function App() {
             </div>
             
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Puedes usar las siguientes variables: {'{institucion}'}, {'{alerta}'}, {'{fecha}'}.
+              Puedes usar las siguientes variables: {'{nombre}'}, {'{institucion}'}, {'{alerta}'}, {'{fecha}'}.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
