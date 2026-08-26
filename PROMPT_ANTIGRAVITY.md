@@ -74,6 +74,7 @@ días de la semana).
 ### Entorno de desarrollo
 - Windows 11 + VSCode + Docker Desktop.
 - Carpeta del proyecto: `C:\Users\Soporte Tecnico\docker-portal-estado-institucionesBIC`
+- **Desarrollo Local:** Dado que el `docker-compose.yml` base está optimizado para producción con Coolify (Traefik) y omite los mapeos de puertos expuestos al host, se utiliza un archivo `docker-compose.override.yml` (ignorado en Git) exclusivo para la máquina local. Este archivo restaura el mapeo del puerto `3000:80` para el frontend y simula la red `coolify`, permitiendo el acceso local en `http://localhost:3000`.
 
 ### Entorno de producción
 - VM propia en **Oracle Cloud (Oracle Cloud Free Tier - Ampere A1)**.
