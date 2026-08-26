@@ -1,6 +1,7 @@
-# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA)
+# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA) - V1.5
 
 Sistema satélite de solo lectura para auditar y monitorear el estado de instituciones financieras en el portal BICSA (`https://bicquerywebapp.azurewebsites.net`).
+Integrado con **Autenticación Firebase** y notificaciones por **WhatsApp**.
 
 ---
 
@@ -14,33 +15,30 @@ docker-portal-estado-institucionesBIC/
 ├── .env.example              # Plantilla de variables de entorno
 ├── docker-compose.yml        # Orquestación de contenedores en local y prod
 ├── README.md                 # Guía de instalación y operaciones
+├── DOCUMENTACION_COMPLETA_V1.5.md # Manual de usuario y arquitectura
 ├── scraper/                  # Microservicio de Scraping & Scheduler
 │   ├── Dockerfile            # Imagen basada en Playwright (amd64/arm64)
 │   ├── requirements.txt
-│   ├── bicsa_scraper.py      # Extractor Playwright para ASP.NET WebForms
+│   ├── bicsa_scraper.py      # Extractor Playwright para ASP.NET WebForms (Omite Layouts anidados)
 │   └── main.py               # Servicio FastAPI + APScheduler (07:00 / 16:00 hs)
 ├── backend/                  # API RESTful & Base de Datos
 │   ├── Dockerfile
-│   ├── requirements.txt
-│   └── app/
-│       ├── main.py           # Aplicación FastAPI
-│       ├── core/             # Seguridad JWT y Hasheo
-│       ├── db/               # Conexión SQLAlchemy PostgreSQL
-│       ├── models/           # Tablas: Institucion, EstadoActual, SnapshotDiario, Historial
-│       ├── services/         # Cálculo 72h hábiles y generador Excel openpyxl
-│       └── api/              # Endpoints API (/auth, /instituciones, /internal)
+│   ├── firebase-adminsdk.json# Credenciales de Google Cloud (No subir a Git)
+│   ├── app/
+│   │   ├── main.py           # Aplicación FastAPI
+│   │   ├── core/             # Seguridad con Firebase Auth
+│   │   ├── db/               # Conexión SQLAlchemy PostgreSQL
+│   │   └── api/              # Endpoints API (/auth, /instituciones, /internal)
 └── frontend/                 # Dashboard SPA Interactivo
     ├── Dockerfile            # Multi-etapa Node.js + Nginx
-    ├── nginx.conf
-    ├── index.html
-    └── src/                  # React + Lucide Icons + Glassmorphic Dark UI
+    └── src/                  # React + Lucide Icons + Glassmorphic Dark UI + SDK Firebase Auth
 ```
 
 ---
 
 ## 🚀 Despliegue en Entorno de Desarrollo Local (Windows 11 + Docker Desktop)
 
-### 1. Configuración de Variables de Entorno
+### 1. Configuración de Variables de Entorno y Firebase
 Copia el archivo `.env.example` a `.env` y configura tus credenciales reales del portal BICSA:
 
 ```bash
@@ -53,6 +51,8 @@ BICSA_USER=tu_usuario_bicsa
 BICSA_PASSWORD=tu_password_bicsa
 ```
 
+**⚠️ REQUISITO IMPORTANTE**: Debes colocar el archivo de credenciales de tu Service Account de Firebase con el nombre `firebase-adminsdk.json` dentro de la carpeta `backend/`. Este archivo es ignorado por Git por motivos de seguridad.
+
 ### 2. Iniciar la Aplicación con Docker Compose
 
 Ejecuta el siguiente comando en PowerShell o CMD dentro del directorio del proyecto:
@@ -64,12 +64,12 @@ docker compose up --build -d
 ### 3. Acceso a los Servicios
 
 - 🎨 **Dashboard Frontend**: `http://localhost:3000`
-  - **Usuario inicial**: `admin@bicsasatelite.com`
-  - **Contraseña inicial**: `AdminPassword2026!`
+  - Inicia sesión utilizando las cuentas autorizadas en tu proyecto de Firebase.
 - ⚙️ **Backend API (Swagger Docs)**: `http://localhost:8000/docs`
 - 🤖 **Microservicio Scraper (Health Check)**: `http://localhost:8001/health`
 
 ---
+
 
 ## 🔬 Prueba Individual del Scraper (Standalone)
 

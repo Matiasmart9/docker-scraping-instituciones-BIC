@@ -1,7 +1,7 @@
-# Documentación Completa y Manual de Usuario - BICSA Web Satélite V1.3
+# Documentación Completa y Manual de Usuario - BICSA Web Satélite V1.5
 
 ## 1. Introducción
-**BICSA Web Satélite V1.3** es un sistema automatizado de auditoría y monitoreo diseñado para extraer, analizar y alertar sobre el estado de las instituciones financieras en el portal oficial de BICSA. La versión 1.3 introduce un nuevo sistema de menús laterales y notificaciones automáticas por WhatsApp para una gestión mucho más proactiva.
+**BICSA Web Satélite V1.5** es un sistema automatizado de auditoría y monitoreo diseñado para extraer, analizar y alertar sobre el estado de las instituciones financieras en el portal oficial de BICSA. La versión 1.5 introduce integración de Autenticación Segura con Firebase y un motor de scraping resiliente, sumándose al sistema de notificaciones automáticas por WhatsApp para una gestión mucho más proactiva.
 
 ---
 
@@ -55,3 +55,17 @@ El sistema incluye un botón de **Chat (ícono de WhatsApp verde)** para aquella
 2. Saltará una **ventana de confirmación** para evitar envíos por error ("¿Estás seguro que deseas enviar la alerta por WhatsApp?").
 3. Al confirmar ("Sí, enviar WhatsApp" en color naranja), el sistema enviará automáticamente una plantilla redactada.
 4. **Plantilla Inteligente:** El mensaje incluye el nombre de la institución y la **Fecha de última carga registrada**, permitiendo que los administradores reaccionen rápidamente para evitar el bloqueo en el sistema BICSA oficial.
+
+---
+
+## 4. Novedades de las versiones V1.4 y V1.5
+
+### 4.1. Autenticación Segura (Firebase)
+Se ha migrado el sistema de inicio de sesión de un acceso básico en base de datos a **Google Firebase Admin SDK**.
+- Los inicios de sesión son ahora procesados y validados de manera criptográfica mediante tokens JWT en Firebase Auth.
+- Mayor seguridad en la exposición de endpoints del backend, bloqueando el acceso (Error 401 Unauthorized) a cualquier solicitud que no cuente con un token válido.
+
+### 4.2. Scraping Resiliente a Diseños Web (Layouts)
+El motor de scraping ha sido mejorado significativamente para ser inmune a cambios estructurales menores en la plataforma de BICSA.
+- Ahora omite inteligentemente las tablas de diseño o "layout" ocultas del motor antiguo ASP.NET (WebForms) analizando el anidamiento de etiquetas HTML (`<table>` dentro de `<table>`).
+- Garantiza la extracción exacta de todas las instituciones reales independientemente de si poseen ID o no.
