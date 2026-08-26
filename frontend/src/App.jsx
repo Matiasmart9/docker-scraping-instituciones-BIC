@@ -1246,7 +1246,7 @@ export default function App() {
                         <td>
                               <button 
                                 className="btn btn-blue btn-sm" 
-                                disabled={!inst.isValid || isSavingContacto === inst.id}
+                                disabled={!inst.isValid}
                                 onClick={async () => {
                               try {
                                 const res = await fetch(`${API_BASE}/contactos/${inst.id}`, {
