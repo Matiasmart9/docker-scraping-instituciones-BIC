@@ -108,6 +108,10 @@ FRONTEND_URLS = [
     "https://141.148.159.57"
 ]
 
+domain_env = os.getenv("DOMAIN")
+if domain_env:
+    FRONTEND_URLS.append(f"https://{domain_env}")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=FRONTEND_URLS,
