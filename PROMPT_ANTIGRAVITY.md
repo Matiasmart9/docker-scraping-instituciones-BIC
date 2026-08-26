@@ -147,3 +147,12 @@ Las imágenes Docker deben buildearse para **linux/amd64** (desarrollo en Window
 Empezar por el punto 1, 2 y 3 (estructura + scraper funcionando contra el portal
 real), antes de avanzar con base de datos y dashboard, para validar cuanto antes
 que el login/scraping funciona correctamente.
+
+---
+
+## Historial de Actualizaciones (Memoria)
+- **Mejoras de Contactos y WhatsApp (Agosto 2026):**
+  - **Estructura de Datos Híbrida:** Se almacena el número y nombre del contacto en la base de datos utilizando el mismo campo VARCHAR de la estructura original, concatenando los valores (`+595981234567|Juan Pérez`) para evitar migraciones en SQL.
+  - **Envíos Individualizados:** El backend de notificaciones (`notificaciones.py`) ahora divide estos strings y ejecuta peticiones individuales a la API de WhatsApp por cada destinatario, permitiendo usar la variable `{nombre}` en los mensajes.
+  - **Interfaz de Usuario (UX):** Se movió el selector de Tema al menú desplegable. Los botones de acción principal (Guardar) usan un estilo `.btn-blue` fijo. Se agregó una alerta `window.confirm` para prevenir el borrado accidental de teléfonos. El menú de instituciones pendientes fue renombrado a "Cargar Contacto" y admite cargar múltiples teléfonos simultáneamente.
+  - **Túnel SSH SOCKS5 Seguro:** Debido a que el firewall de la oficina (FortiGate) bloquea APIs necesarias (como Firebase Auth), se estableció un proceso documentado (`GUIA_TUNEL_PRIVADO_SSH.md`) para conectarse por SSH al servidor de Oracle en el puerto 9090 (Proxy SOCKS5 local) con KeepAlive para usar el sistema a través de Firefox libremente sin ser interceptado.
