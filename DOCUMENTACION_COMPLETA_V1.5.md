@@ -71,11 +71,12 @@ El motor de scraping ha sido mejorado significativamente para ser inmune a cambi
 - Garantiza la extracción exacta de todas las instituciones reales independientemente de si poseen ID o no.
 - Maneja correctamente cierres de sesión abruptos (Timeout de ASP.NET) sin generar "instituciones fantasma" con errores de sistema.
 
-### 4.3. Infraestructura en Oracle Cloud (Coolify + Traefik)
-El sistema ha sido optimizado para convivir armónicamente con gestores de infraestructura modernos en la nube.
-- **Integración con Coolify:** El despliegue de V1.5 elimina el servidor web autónomo (Caddy) para integrarse como un módulo directo en el proxy **Traefik** nativo de Coolify.
-- **Certificados SSL Automatizados:** Traefik intercepta las llamadas al dominio y negocia automáticamente certificados HTTPS válidos con *Let's Encrypt*.
-- **Bug Fix de Red en Ubuntu (Iptables):** Se superaron las severas restricciones del firewall por defecto de Oracle Cloud aplicando la regla `iptables -I FORWARD -j ACCEPT`, lo cual garantiza que los contenedores aislados de Docker puedan salir a internet para validar protocolos de seguridad sin fricción.
+### 4.3. Dominio, HTTPS e Infraestructura (Oracle Cloud + Coolify)
+Para garantizar la profesionalidad y seguridad en la nube, el sistema fue desplegado utilizando herramientas modernas de enrutamiento web:
+- **Dominio Dinámico (DuckDNS):** El sistema es accesible públicamente a través del dominio `bicsa-panel-estado-inst.duckdns.org`. DuckDNS actúa como un servicio de DNS gratuito que apunta este nombre amigable hacia la dirección IP de tu máquina en Oracle Cloud.
+- **Certificados SSL (Let's Encrypt):** Todas las comunicaciones entre el navegador y el servidor viajan encriptadas bajo el protocolo seguro HTTPS. Los certificados son emitidos gratuitamente por **Let's Encrypt**, una autoridad de certificación global.
+- **Proxy Inverso (Coolify + Traefik):** El despliegue se integra como un módulo directo en el proxy **Traefik** nativo de tu gestor **Coolify**. Traefik intercepta las llamadas al dominio de DuckDNS y negocia la auto-renovación de los certificados SSL de Let's Encrypt en segundo plano.
+- **Bug Fix de Red en Ubuntu (Iptables):** Se superaron las severas restricciones del firewall por defecto de Oracle Cloud aplicando la regla `iptables -I FORWARD -j ACCEPT`, lo cual garantiza que los contenedores aislados de Docker puedan salir a internet para validar el certificado SSL de Let's Encrypt sin fricción.
 
 ### 4.4. Seguridad Avanzada del Backend y APIs
 Para proteger los datos expuestos por la API, se agregaron tres anillos de seguridad adicionales:
