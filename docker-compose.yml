@@ -24,7 +24,7 @@ services:
     container_name: bicsa_backend
     restart: always
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-bicsa_user}:${POSTGRES_PASSWORD:-bicsa_secure_password_2026}@db:5432/${POSTGRES_DB:-bicsa_satelite_db}
       - SECRET_KEY=${SECRET_KEY:-bicsa_super_secret_jwt_key_change_in_production_2026!}
