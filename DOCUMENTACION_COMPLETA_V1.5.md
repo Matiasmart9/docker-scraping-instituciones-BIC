@@ -19,6 +19,7 @@ Es la vista por defecto donde se visualizan:
 Un registro detallado de todas las variaciones de estado detectadas por el sistema de scraping a lo largo del tiempo. 
 - Muestra el **Estado Anterior** y el **Estado Nuevo** de cada institución.
 - Permite hacer seguimiento de cuándo una institución pasó a estar bloqueada o suspendida.
+- **Transiciones Automáticas Inmediatas:** El sistema detecta dinámicamente si una institución salta libremente entre cualquier estado en la plataforma fuente (ej. de "Suspendida" a "Validación de XML" o "Activa"). Al comparar el estado recién capturado contra la foto anterior guardada en la base de datos local, cualquier diferencia es atrapada de inmediato en la siguiente corrida del robot, registrando el evento aquí y mudando a la institución a la tabla correspondiente en el Panel Principal de forma totalmente desatendida.
 
 ### 2.3. Exportar Excel
 Botón de un solo clic que genera y descarga automáticamente un reporte completo en formato `.xlsx`.
