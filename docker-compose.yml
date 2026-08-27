@@ -83,6 +83,7 @@ services:
       - "traefik.http.routers.bicsa-frontend.entrypoints=https"
       - "traefik.http.routers.bicsa-frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.bicsa-frontend.loadbalancer.server.port=80"
+      - "traefik.docker.network=coolify"
 
   whatsapp:
     build: ./whatsapp
