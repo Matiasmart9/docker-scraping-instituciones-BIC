@@ -19,6 +19,9 @@ class Institucion(Base):
     telefonos_contacto = Column(ARRAY(String), default=list)
     contacto_actualizado_en = Column(DateTime(timezone=True), nullable=True)
     contacto_actualizado_por = Column(String(255), nullable=True)
+    
+    # Manejo de cambios de nombre en el portal
+    alias_nombres = Column(ARRAY(String), default=list)
 
 class EstadoActual(Base):
     __tablename__ = "estado_actual"
@@ -80,3 +83,15 @@ class Usuario(Base):
     es_activo = Column(Boolean, default=True)
     es_admin = Column(Boolean, default=False)
     creado_el = Column(DateTime, default=datetime.datetime.utcnow)
+
+class RegistroUnificacion(Base):
+    __tablename__ = "registro_unificacion"
+
+    id = Column(Integer, primary_key=True, index=True)
+    institucion_antigua_nombre = Column(String(255), nullable=False)
+    institucion_nueva_id = Column(Integer, ForeignKey("instituciones.id"), nullable=False)
+    institucion_nueva_nombre = Column(String(255), nullable=False)
+    fecha_unificacion = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+    usuario_email = Column(String(255), nullable=False)
+    
+    institucion_nueva = relationship("Institucion")

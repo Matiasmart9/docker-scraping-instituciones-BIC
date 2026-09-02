@@ -45,7 +45,12 @@ def sync_scrape_data(payload: SyncScrapePayload, db: Session = Depends(get_db)):
         categoria = str(item.get("categoria_tabla", estado))[:95]
 
         # 1. Obtener o crear catálogo de Institución
-        inst = db.query(Institucion).filter(Institucion.nombre == nombre).first()
+        # Buscar por nombre exacto o dentro de los alias
+        inst = db.query(Institucion).filter(
+            (Institucion.nombre == nombre) |
+            (Institucion.alias_nombres.any(nombre))
+        ).first()
+        
         if not inst:
             inst = Institucion(nombre=nombre)
             db.add(inst)
@@ -122,6 +127,25 @@ def sync_scrape_data(payload: SyncScrapePayload, db: Session = Depends(get_db)):
                 categoria_tabla=categoria
             )
             db.add(snap)
+
+    # 6. Limpiar instituciones que desaparecieron del portal (ya no están en scrape_data)
+    # Eliminamos su EstadoActual para que no sumen en el total ni aparezcan en el dashboard
+    if len(scrape_data) > 0:
+        procesados_ids = list(cache_estado_actual.keys())
+        estados_huerfanos = db.query(EstadoActual).filter(~EstadoActual.institucion_id.in_(procesados_ids)).all()
+        for estado_huerfano in estados_huerfanos:
+            logger.info(f"Institución ID {estado_huerfano.institucion_id} desapareció del portal. Eliminando su estado actual.")
+            log_cambio = HistorialCambios(
+                institucion_id=estado_huerfano.institucion_id,
+                estado_anterior=estado_huerfano.estado,
+                estado_nuevo="Desaparecida del Portal",
+                fecha_deteccion=snapshot_dt,
+                corrida_origen=run_type,
+                detalle_cambio="La institución ya no figura en ninguna tabla del portal BICSA."
+            )
+            db.add(log_cambio)
+            db.delete(estado_huerfano)
+            cambios_registrados += 1
 
     db.commit()
     logger.info(f"Sincronización finalizada con éxito. Cambios de estado registrados: {cambios_registrados}")

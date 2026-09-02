@@ -7,13 +7,46 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.institucion import Institucion, EstadoActual, HistorialCambios
+from app.models.institucion import Institucion, EstadoActual, HistorialCambios, RegistroUnificacion
 from app.schemas.institucion import EstadoActualResponse, KPIResponse, HistorialCambioResponse
 from app.services.excel_generator import generar_excel_instituciones
 from app.core.security import get_current_user
 
 router = APIRouter(prefix="/instituciones", tags=["Instituciones"])
 SCRAPER_URL = os.getenv("SCRAPER_URL", "http://scraper:8001")
+
+@router.get("/desaparecidas")
+def get_instituciones_desaparecidas(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Retorna instituciones que no tienen estado actual (probablemente desaparecieron del portal)."""
+    # Buscamos instituciones cuyo estado_actual sea nulo
+    desaparecidas = db.query(Institucion).outerjoin(EstadoActual).filter(
+        EstadoActual.id == None,
+        ~Institucion.nombre.contains("@")
+    ).all()
+    res = []
+    for d in desaparecidas:
+        res.append({
+            "id": d.id,
+            "nombre": d.nombre,
+            "creado_el": d.creado_el
+        })
+    return res
+
+@router.get("/unificaciones")
+def get_historial_unificaciones(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """Retorna el historial de unificaciones realizadas."""
+    registros = db.query(RegistroUnificacion).order_by(RegistroUnificacion.fecha_unificacion.desc()).all()
+    res = []
+    for r in registros:
+        res.append({
+            "id": r.id,
+            "institucion_antigua_nombre": r.institucion_antigua_nombre,
+            "institucion_nueva_id": r.institucion_nueva_id,
+            "institucion_nueva_nombre": r.institucion_nueva_nombre,
+            "fecha_unificacion": r.fecha_unificacion,
+            "usuario_email": r.usuario_email
+        })
+    return res
 
 @router.get("/kpis", response_model=KPIResponse)
 def get_dashboard_kpis(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -276,3 +309,80 @@ def trigger_manual_scraping(current_user = Depends(get_current_user)):
         return res.json()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al conectar con el scraper: {str(e)}")
+
+from pydantic import BaseModel
+
+class UnificarPayload(BaseModel):
+    id_antigua: int
+    id_nueva: int
+
+@router.post("/unificar")
+def unificar_instituciones(payload: UnificarPayload, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Unifica dos instituciones cuando cambian de nombre. 
+    Traspasa todo el historial y snapshots de la antigua a la nueva, 
+    agrega el nombre de la antigua como alias de la nueva y elimina la antigua.
+    """
+    if not current_user.es_admin:
+        raise HTTPException(status_code=403, detail="Solo los administradores pueden unificar instituciones.")
+
+    old_inst = db.query(Institucion).filter(Institucion.id == payload.id_antigua).first()
+    new_inst = db.query(Institucion).filter(Institucion.id == payload.id_nueva).first()
+
+    if not old_inst or not new_inst:
+        raise HTTPException(status_code=404, detail="No se encontraron ambas instituciones.")
+        
+    if old_inst.id == new_inst.id:
+        raise HTTPException(status_code=400, detail="Los IDs deben ser diferentes.")
+
+    # Mover historiales
+    historiales = db.query(HistorialCambios).filter(HistorialCambios.institucion_id == old_inst.id).all()
+    for h in historiales:
+        h.institucion_id = new_inst.id
+
+    # Mover snapshots
+    snapshots = db.query(SnapshotDiario).filter(SnapshotDiario.institucion_id == old_inst.id).all()
+    for s in snapshots:
+        s.institucion_id = new_inst.id
+
+    # Agregar el nombre antiguo a los alias del nuevo
+    aliases_nuevos = list(new_inst.alias_nombres or [])
+    if old_inst.nombre not in aliases_nuevos:
+        aliases_nuevos.append(old_inst.nombre)
+    if old_inst.alias_nombres:
+        for alias in old_inst.alias_nombres:
+            if alias not in aliases_nuevos:
+                aliases_nuevos.append(alias)
+    
+    new_inst.alias_nombres = aliases_nuevos
+    
+    # Unir telefonos de contacto
+    telefonos = list(new_inst.telefonos_contacto or [])
+    if old_inst.telefonos_contacto:
+        for t in old_inst.telefonos_contacto:
+            if t not in telefonos:
+                telefonos.append(t)
+    new_inst.telefonos_contacto = telefonos
+
+    # Eliminar estado actual de la antigua
+    old_estado = db.query(EstadoActual).filter(EstadoActual.institucion_id == old_inst.id).first()
+    if old_estado:
+        db.delete(old_estado)
+
+    # Crear el registro de auditoría
+    registro = RegistroUnificacion(
+        institucion_antigua_nombre=old_inst.nombre,
+        institucion_nueva_id=new_inst.id,
+        institucion_nueva_nombre=new_inst.nombre,
+        usuario_email=current_user.email
+    )
+    db.add(registro)
+
+    db.delete(old_inst)
+    db.commit()
+
+    return {
+        "status": "SUCCESS", 
+        "message": f"Institución '{old_inst.nombre}' unificada dentro de '{new_inst.nombre}' exitosamente.",
+        "nuevos_alias": new_inst.alias_nombres
+    }

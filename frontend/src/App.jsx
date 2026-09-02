@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
-  Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu
+  Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu,
+  Link as LinkIcon
 } from 'lucide-react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
+import UnificacionModal from "./UnificacionModal";
 
 const API_BASE = '/api/v1';
 
@@ -173,6 +175,20 @@ export default function App() {
   const [filterBackupYear, setFilterBackupYear] = useState('Todos');
   const [filterBackupMonth, setFilterBackupMonth] = useState('Todos');
   const [backupCurrentPage, setBackupCurrentPage] = useState(1);
+  const [showUnificacionModal, setShowUnificacionModal] = useState(false);
+  const [desaparecidasCount, setDesaparecidasCount] = useState(0);
+
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowContactosDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Modales de Confirmación
   const [showScrapeConfirmModal, setShowScrapeConfirmModal] = useState(false);
@@ -331,6 +347,13 @@ export default function App() {
       if (resInst.ok) {
         const dataInst = await resInst.json();
         setInstituciones(dataInst);
+      }
+
+      // 3. Cargar conteo de Desaparecidas
+      const resDesap = await fetch(`${API_BASE}/instituciones/desaparecidas`, { headers });
+      if (resDesap.ok) {
+        const dataDesap = await resDesap.json();
+        setDesaparecidasCount(dataDesap.length);
       }
     } catch (err) {
       console.error('Error al cargar datos:', err);
@@ -569,7 +592,7 @@ export default function App() {
           <div className="brand" style={{ marginBottom: '24px', justifyContent: 'center' }}>
             <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
             <div>
-              <div className="brand-title">BICSA Web Satélite V1.5</div>
+              <div className="brand-title">BICSA Web Satélite V1.6</div>
               <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
             </div>
           </div>
@@ -648,7 +671,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.5</div>
+            <div className="brand-title">BICSA Web Satélite V1.6</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>
@@ -666,7 +689,7 @@ export default function App() {
             </div>
           )}
 
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative' }} ref={dropdownRef}>
             <button className="btn btn-secondary" onClick={() => setShowContactosDropdown(!showContactosDropdown)} title="Menu Principal">
               <Menu size={16} />
               <span>Menú</span>
@@ -700,6 +723,21 @@ export default function App() {
                   }}
                 >
                   <Settings size={16} className="text-blue-500" /> Plantillas de Mensaje
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px', position: 'relative' }}
+                  onClick={() => {
+                    setShowContactosDropdown(false);
+                    setShowUnificacionModal(true);
+                  }}
+                >
+                  <LinkIcon size={16} className="text-indigo-500" /> Resolución de Nombres
+                  {desaparecidasCount > 0 && (
+                    <span style={{ marginLeft: 'auto', background: '#EF4444', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                      {desaparecidasCount}
+                    </span>
+                  )}
                 </button>
                 <a 
                   href="/qr"
@@ -1547,6 +1585,15 @@ export default function App() {
         </div>
       )}
 
+      {/* Modal de Unificación */}
+      <UnificacionModal 
+        isOpen={showUnificacionModal}
+        onClose={() => setShowUnificacionModal(false)}
+        token={token}
+        showToast={showToast}
+        institucionesActivas={instituciones}
+        fetchDashboardData={fetchDashboardData}
+      />
     </div>
   );
 }
