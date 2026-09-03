@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.institucion import Institucion, EstadoActual, HistorialCambios, RegistroUnificacion
+from app.models.institucion import Institucion, EstadoActual, HistorialCambios, RegistroUnificacion, SnapshotDiario
 from app.schemas.institucion import EstadoActualResponse, KPIResponse, HistorialCambioResponse
 from app.services.excel_generator import generar_excel_instituciones
 from app.core.security import get_current_user
