@@ -336,14 +336,10 @@ def unificar_instituciones(payload: UnificarPayload, db: Session = Depends(get_d
         raise HTTPException(status_code=400, detail="Los IDs deben ser diferentes.")
 
     # Mover historiales
-    historiales = db.query(HistorialCambios).filter(HistorialCambios.institucion_id == old_inst.id).all()
-    for h in historiales:
-        h.institucion_id = new_inst.id
+    db.query(HistorialCambios).filter(HistorialCambios.institucion_id == old_inst.id).update({"institucion_id": new_inst.id})
 
     # Mover snapshots
-    snapshots = db.query(SnapshotDiario).filter(SnapshotDiario.institucion_id == old_inst.id).all()
-    for s in snapshots:
-        s.institucion_id = new_inst.id
+    db.query(SnapshotDiario).filter(SnapshotDiario.institucion_id == old_inst.id).update({"institucion_id": new_inst.id})
 
     # Agregar el nombre antiguo a los alias del nuevo
     aliases_nuevos = list(new_inst.alias_nombres or [])
@@ -368,6 +364,8 @@ def unificar_instituciones(payload: UnificarPayload, db: Session = Depends(get_d
     old_estado = db.query(EstadoActual).filter(EstadoActual.institucion_id == old_inst.id).first()
     if old_estado:
         db.delete(old_estado)
+
+    db.flush() # Importante: Hacer flush para asegurar que el estado y los FK se actualizaron antes de eliminar la inst
 
     # Crear el registro de auditoría
     registro = RegistroUnificacion(
