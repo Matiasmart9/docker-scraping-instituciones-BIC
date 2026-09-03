@@ -1,4 +1,4 @@
-# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA) - V1.5
+# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA) - V1.6
 
 Sistema satélite de solo lectura para auditar y monitorear el estado de instituciones financieras en el portal BICSA (`https://bicquerywebapp.azurewebsites.net`).
 Integrado con **Autenticación Firebase** y notificaciones por **WhatsApp**.
@@ -15,7 +15,7 @@ docker-portal-estado-institucionesBIC/
 ├── .env.example              # Plantilla de variables de entorno
 ├── docker-compose.yml        # Orquestación de contenedores en local y prod
 ├── README.md                 # Guía de instalación y operaciones
-├── DOCUMENTACION_COMPLETA_V1.5.md # Manual de usuario y arquitectura
+├── DOCUMENTACION_COMPLETA_V1.6.md # Manual de usuario y arquitectura
 ├── scraper/                  # Microservicio de Scraping & Scheduler
 │   ├── Dockerfile            # Imagen basada en Playwright (amd64/arm64)
 │   ├── requirements.txt
@@ -132,8 +132,9 @@ docker compose up -d
 El proyecto está optimizado para integrarse nativamente con el proxy inverso **Traefik** gestionado por **Coolify**.
 En `docker-compose.yml`, el contenedor `frontend` se adjunta a la red `coolify` y expone etiquetas (`labels`) para auto-descubrimiento. Traefik intercepta el dominio definido, genera el certificado SSL con Let's Encrypt y balancea la carga automáticamente, manteniendo cerrados y seguros todos los demás puertos del host.
 
-### 4. Capas de Seguridad Implementadas (V1.5)
+### 4. Capas de Seguridad Implementadas (V1.6)
 - **Firebase Auth:** Las rutas API exigen validación de token JWT firmado criptográficamente.
+- **Roles y Permisos:** Control de acceso estricto basado en BD (Ej. Funciones de unificación solo para administradores).
 - **Puertos Internos:** Los servicios `backend` (8000), `scraper` (8001) y `db` (5432) solo escuchan tráfico interno (127.0.0.1 o red de docker) y no están expuestos al público general.
 - **Rate Limiting:** Se utiliza `slowapi` (120 req/min) para mitigar ataques DDoS y fuerza bruta.
 - **CORS Estricto:** Se valida el `DOMAIN` en los orígenes permitidos de FastAPI para prevenir CSRF/XSS.
@@ -143,3 +144,4 @@ En `docker-compose.yml`, el contenedor `frontend` se adjunta a la red `coolify` 
 - **07:00 hs (Diario)**: Corrida **FULL** / Snapshot Histórico Oficial. Se realiza la captura diaria y se registran eventos en `historial_cambios`.
 - **16:00 hs (Lunes a Viernes)**: Corrida **LIGHT** / Refresco en vivo de intradía.
 - **Regla de 72 Horas Hábiles**: Se calcula el tiempo restante (excluyendo sábados y domingos) desde `Fecha última carga` para advertir sobre instituciones que corren riesgo de ser **Bloqueadas** por BICSA.
+- **Auditoría de Nombres (V1.6)**: El sistema detecta automáticamente instituciones desaparecidas y proporciona una interfaz de "Resolución de Nombres" para que los Administradores puedan unificarlas y mantener un historial transparente de los traspasos.
