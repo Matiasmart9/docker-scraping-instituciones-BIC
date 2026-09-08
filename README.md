@@ -15,7 +15,8 @@ docker-portal-estado-institucionesBIC/
 ├── .env.example              # Plantilla de variables de entorno
 ├── docker-compose.yml        # Orquestación de contenedores en local y prod
 ├── README.md                 # Guía de instalación y operaciones
-├── DOCUMENTACION_COMPLETA_V1.6.md # Manual de usuario y arquitectura
+├── DOCUMENTACION_COMPLETA_V1.6.md # Manual de usuario y arquitectura (histórico)
+├── DOCUMENTACION_COMPLETA_V1.7.md # Arquitectura del KPI de Cierre de Carga Mensual
 ├── scraper/                  # Microservicio de Scraping & Scheduler
 │   ├── Dockerfile            # Imagen basada en Playwright (amd64/arm64)
 │   ├── requirements.txt
@@ -145,3 +146,4 @@ En `docker-compose.yml`, el contenedor `frontend` se adjunta a la red `coolify` 
 - **16:00 hs (Lunes a Viernes)**: Corrida **LIGHT** / Refresco en vivo de intradía.
 - **Regla de 72 Horas Hábiles**: Se calcula el tiempo restante (excluyendo sábados y domingos) desde `Fecha última carga` para advertir sobre instituciones que corren riesgo de ser **Bloqueadas** por BICSA.
 - **Auditoría de Nombres (V1.6)**: El sistema detecta automáticamente instituciones desaparecidas y proporciona una interfaz de "Resolución de Nombres" para que los Administradores puedan unificarlas y mantener un historial transparente de los traspasos.
+- **Cierre de Carga Mensual (V1.7)**: Nuevo panel (Menú → "Cierre de Carga Mensual") que audita cuánto aporta cada institución mes a mes, tomando como fuente única los snapshots del proceso FULL de las 07hs. Ver detalle completo en `DOCUMENTACION_COMPLETA_V1.7.md`.
