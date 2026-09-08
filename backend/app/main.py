@@ -13,7 +13,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from app.db.session import engine, Base, SessionLocal
 from app.models.institucion import Usuario, Institucion, EstadoActual
 from app.core.security import get_password_hash
-from app.api.endpoints import auth, instituciones, sync, contactos, notificaciones
+from app.api.endpoints import auth, instituciones, sync, contactos, notificaciones, kpi_cargas
 from app.services.business_logic import evaluar_nivel_alerta
 from app.core.firebase_config import init_firebase
 
@@ -127,6 +127,7 @@ app.include_router(instituciones.router, prefix="/api/v1")
 app.include_router(sync.router, prefix="/api/v1")
 app.include_router(contactos.router)
 app.include_router(notificaciones.router)
+app.include_router(kpi_cargas.router, prefix="/api/v1")
 
 @app.get("/health")
 def health_check():

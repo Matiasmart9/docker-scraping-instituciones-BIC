@@ -3,11 +3,12 @@ import {
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
   Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu,
-  Link as LinkIcon
+  Link as LinkIcon, BarChart3
 } from 'lucide-react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 import UnificacionModal from "./UnificacionModal";
+import CargasMensualesModal from "./CargasMensualesModal";
 
 const API_BASE = '/api/v1';
 
@@ -176,6 +177,7 @@ export default function App() {
   const [filterBackupMonth, setFilterBackupMonth] = useState('Todos');
   const [backupCurrentPage, setBackupCurrentPage] = useState(1);
   const [showUnificacionModal, setShowUnificacionModal] = useState(false);
+  const [showCargasMensualesModal, setShowCargasMensualesModal] = useState(false);
   const [desaparecidasCount, setDesaparecidasCount] = useState(0);
 
   const dropdownRef = useRef(null);
@@ -592,7 +594,7 @@ export default function App() {
           <div className="brand" style={{ marginBottom: '24px', justifyContent: 'center' }}>
             <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
             <div>
-              <div className="brand-title">BICSA Web Satélite V1.6</div>
+              <div className="brand-title">BICSA Web Satélite V1.7</div>
               <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
             </div>
           </div>
@@ -671,7 +673,7 @@ export default function App() {
         <div className="brand">
           <img src="/icono_Bicsa.ico" alt="BICSA" className="brand-logo-img" />
           <div>
-            <div className="brand-title">BICSA Web Satélite V1.6</div>
+            <div className="brand-title">BICSA Web Satélite V1.7</div>
             <div className="brand-subtitle">Monitoreo de Estado de Instituciones</div>
           </div>
         </div>
@@ -697,7 +699,7 @@ export default function App() {
             </button>
             
             {showContactosDropdown && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: 'var(--glass-bg)', backdropFilter: 'blur(12px)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '8px', zIndex: 100, minWidth: '220px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', background: 'var(--bg-card)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '8px', zIndex: 100, minWidth: '220px', boxShadow: '0 14px 34px rgba(0,0,0,0.45)' }}>
                 <button 
                   className="btn btn-secondary" 
                   style={{ width: '100%', justifyContent: 'flex-start', marginBottom: '4px', border: 'none' }}
@@ -748,9 +750,19 @@ export default function App() {
                 >
                   <WhatsappIcon size={16} style={{ color: '#10B981' }} /> Lector QR WhatsApp
                 </a>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={toggleTheme} 
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
+                  onClick={() => {
+                    setShowContactosDropdown(false);
+                    setShowCargasMensualesModal(true);
+                  }}
+                >
+                  <BarChart3 size={16} className="text-orange-500" /> Cierre de Carga Mensual
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={toggleTheme}
                   style={{ width: '100%', justifyContent: 'flex-start', border: 'none' }}
                 >
                   {isDarkMode ? <Sun size={16} className="text-yellow-500" /> : <Moon size={16} className="text-indigo-500" />} 
@@ -1593,6 +1605,14 @@ export default function App() {
         showToast={showToast}
         institucionesActivas={instituciones}
         fetchDashboardData={fetchDashboardData}
+      />
+
+      {/* Modal de Cierre de Carga Mensual */}
+      <CargasMensualesModal
+        isOpen={showCargasMensualesModal}
+        onClose={() => setShowCargasMensualesModal(false)}
+        token={token}
+        showToast={showToast}
       />
     </div>
   );

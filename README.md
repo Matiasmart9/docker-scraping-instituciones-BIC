@@ -1,4 +1,4 @@
-# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA) - V1.6
+# Portal Satélite de Monitoreo de Estado de Instituciones (BICSA) - V1.7
 
 Sistema satélite de solo lectura para auditar y monitorear el estado de instituciones financieras en el portal BICSA (`https://bicquerywebapp.azurewebsites.net`).
 Integrado con **Autenticación Firebase** y notificaciones por **WhatsApp**.
