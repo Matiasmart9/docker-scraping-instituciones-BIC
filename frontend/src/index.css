@@ -9,7 +9,10 @@
   --text-primary: #F8FAFC;
   --text-secondary: #94A3B8;
   --text-muted: #64748B;
-  
+
+  --sticky-header-bg: rgba(15, 23, 42, 0.95);
+  --sticky-header-text: #94A3B8;
+
   --accent-cyan: #06B6D4;
   --accent-blue: #3B82F6;
   --accent-indigo: #6366F1;
@@ -585,7 +588,10 @@ body.light-theme {
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #64748B;
-  
+
+  --sticky-header-bg: #F1F5F9;
+  --sticky-header-text: #0F172A;
+
   --status-activa-bg: rgba(16, 185, 129, 0.12);
   --status-activa-border: rgba(16, 185, 129, 0.4);
   --status-activa-text: #059669;

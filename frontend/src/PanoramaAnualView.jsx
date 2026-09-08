@@ -9,8 +9,7 @@ const formatMesCorto = (mesStr) => {
   return `${MESES_ABREV[parseInt(mes, 10) - 1]} ${anio}`;
 };
 
-const HEADER_BG = 'rgba(15, 23, 42, 0.95)';
-const thBaseStyle = { position: 'sticky', top: 0, zIndex: 2, background: HEADER_BG };
+const thBaseStyle = { position: 'sticky', top: 0, zIndex: 2, background: 'var(--sticky-header-bg)', color: 'var(--sticky-header-text)' };
 const thCornerStyle = { ...thBaseStyle, left: 0, zIndex: 3, minWidth: '220px' };
 const tdStickyStyle = { position: 'sticky', left: 0, zIndex: 1, background: 'var(--bg-card)' };
 

@@ -31,7 +31,7 @@ const mesAnteriorDe = (mesStr) => {
 
 const numFmt = (n) => n == null ? '-' : n.toLocaleString('es-PY');
 
-const thStickyStyle = { position: 'sticky', top: 0, zIndex: 2, background: 'rgba(15, 23, 42, 0.95)' };
+const thStickyStyle = { position: 'sticky', top: 0, zIndex: 2, background: 'var(--sticky-header-bg)', color: 'var(--sticky-header-text)' };
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload || !payload.length) return null;
