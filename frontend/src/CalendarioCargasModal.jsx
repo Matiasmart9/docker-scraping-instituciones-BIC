@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, CalendarDays, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { X, CalendarDays, ChevronLeft, ChevronRight, RefreshCw, Lock } from 'lucide-react';
 import { lockBodyScroll, unlockBodyScroll } from './scrollLock';
 
 const MESES_NOMBRE = [
@@ -147,7 +147,7 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
                 const evento = eventosPorFecha[fechaStr];
                 const tieneCarga = evento !== undefined;
                 const esManual = tieneCarga && evento.manual;
-                const colorAcento = esManual ? '#8B5CF6' : '#F97316';
+                const colorAcento = esManual ? '#3B82F6' : '#F97316';
                 const tooltip = !tieneCarga
                   ? 'Sin carga registrada'
                   : esManual
@@ -171,8 +171,9 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
                   >
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: tieneCarga ? colorAcento : 'var(--text-muted)' }}>{dia}</span>
                     {tieneCarga && (
-                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', textAlign: 'center', lineHeight: 1.1 }}>
-                        {evento.valor >= 1000 ? `${(evento.valor / 1000).toFixed(0)}K` : evento.valor}{esManual ? ' 🔒' : ''}
+                      <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', textAlign: 'center', lineHeight: 1.1, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                        {evento.valor >= 1000 ? `${(evento.valor / 1000).toFixed(0)}K` : evento.valor}
+                        {esManual && <Lock size={9} style={{ flexShrink: 0 }} />}
                       </span>
                     )}
                   </div>
@@ -185,7 +186,7 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
               Día con carga real de XML registrada (valor ya dividido entre 2)
             </div>
             <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(139, 92, 246, 0.18)', border: '1px solid rgba(139, 92, 246, 0.5)', display: 'inline-block' }} />
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(59, 130, 246, 0.18)', border: '1px solid rgba(59, 130, 246, 0.5)', display: 'inline-block' }} />
               Cierre manual (institución en "límite de consultas") — valor fijo, no dividido
             </div>
             <div style={{ marginTop: '8px', fontSize: '0.68rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>

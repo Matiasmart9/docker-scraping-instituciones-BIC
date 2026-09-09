@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search, CalendarDays, FileSpreadsheet } from 'lucide-react';
+import { Search, CalendarDays, FileSpreadsheet, Lock } from 'lucide-react';
 
 const MESES_ABREV = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -194,7 +194,7 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
                     const colorCelda = v.valor == null
                       ? 'var(--text-muted)'
                       : v.manual
-                        ? '#8B5CF6'
+                        ? '#3B82F6'
                         : f.limiteConsultas
                           ? '#F59E0B'
                           : v.tendencia === 'sube' ? '#34D399' : v.tendencia === 'baja' ? '#F87171' : 'var(--text-primary)';
@@ -209,11 +209,13 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
                           color: colorCelda
                         }}
                       >
-                        {numFmt(v.valor)}{v.manual ? ' 🔒' : ''}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          {numFmt(v.valor)}
+                          {v.manual && <Lock size={10} style={{ flexShrink: 0 }} />}
+                        </span>
                       </td>
                     );
                   })}
-                  ))}
                 </tr>
               ))}
             </tbody>

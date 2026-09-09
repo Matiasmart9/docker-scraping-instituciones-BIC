@@ -400,7 +400,7 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
                   Tendencia Total Aportado (Todas las Instituciones)
                 </h3>
                 <ResponsiveContainer width="100%" height={380}>
-                  <AreaChart data={trendData} margin={{ left: -10, right: 10, top: 10, bottom: 5 }}>
+                  <AreaChart data={trendData} margin={{ left: 0, right: 10, top: 10, bottom: 5 }}>
                     <defs>
                       <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#F97316" stopOpacity={0.5} />
@@ -409,7 +409,7 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                     <XAxis dataKey="mes" tick={{ fill: 'var(--text-muted)', fontSize: 11 }} />
-                    <YAxis tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={numFmt} />
+                    <YAxis width={75} tick={{ fill: 'var(--text-muted)', fontSize: 11 }} tickFormatter={numFmt} />
                     <Tooltip content={<CustomTooltip />} />
                     <Area type="monotone" dataKey="total" name="Total Aportado" stroke="#F97316" strokeWidth={2.5} fill="url(#colorTotal)" />
                   </AreaChart>
@@ -482,7 +482,7 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
                           {r.manual ? (
                             <span
                               title="Cierre confirmado a mano en 'Activa (Límite Consultas)': este es el valor real del mes, ya cargado por el equipo"
-                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#8B5CF6', background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
+                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#3B82F6', background: 'rgba(59, 130, 246, 0.15)', border: '1px solid rgba(59, 130, 246, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
                             >
                               MANUAL
                             </span>

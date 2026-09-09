@@ -850,8 +850,8 @@ def generar_excel_vista_anual(filas: list[dict], anio: str) -> io.BytesIO:
     FILL_BAJA = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
     FONT_BAJA = Font(name="Calibri", size=10, bold=True, color="991B1B")
 
-    FILL_MANUAL = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
-    FONT_MANUAL = Font(name="Calibri", size=10, bold=True, color="5B21B6")
+    FILL_MANUAL = PatternFill(start_color="DBEAFE", end_color="DBEAFE", fill_type="solid")
+    FONT_MANUAL = Font(name="Calibri", size=10, bold=True, color="1E40AF")
 
     FILL_LIMITE = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
     FONT_LIMITE = Font(name="Calibri", size=10, color="92400E")
