@@ -1,6 +1,7 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -13,6 +14,8 @@ from app.services.kpi_cargas import (
     generar_excel_cargas_mensuales,
     _calcular_matriz_anual,
     generar_excel_vista_anual,
+    obtener_limite_consultas,
+    guardar_cierre_manual_limite_consultas,
 )
 
 router = APIRouter(prefix="/kpi-cargas", tags=["KPI Cargas Mensuales"])
@@ -68,3 +71,22 @@ def post_backfill_historico(db: Session = Depends(get_db), current_user=Depends(
     if not current_user.es_admin:
         raise HTTPException(status_code=403, detail="Solo los administradores pueden ejecutar la sincronización histórica.")
     return ejecutar_backfill_historico(db)
+
+
+@router.get("/limite-consultas")
+def get_limite_consultas(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return obtener_limite_consultas(db)
+
+
+class CierreManualPayload(BaseModel):
+    institucion_id: int
+    mes: str
+    valor: int
+
+
+@router.post("/limite-consultas/cargar")
+def post_cargar_limite_consultas(payload: CierreManualPayload, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    try:
+        return guardar_cierre_manual_limite_consultas(db, payload.institucion_id, payload.mes, payload.valor, current_user.email)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

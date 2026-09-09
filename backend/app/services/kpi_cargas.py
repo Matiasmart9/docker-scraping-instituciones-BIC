@@ -10,7 +10,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
-from app.models.institucion import Institucion, EstadoActual, SnapshotDiario
+from app.models.institucion import Institucion, EstadoActual, SnapshotDiario, CierreManualLimiteConsultas
 
 logger = logging.getLogger("kpi_cargas")
 
@@ -36,6 +36,16 @@ def _es_desvinculada(*valores: str) -> bool:
 def _es_validacion_xml(*valores: str) -> bool:
     for v in valores:
         if v and "VALIDACI" in v.upper():
+            return True
+    return False
+
+
+def _es_limite_consultas(*valores: str) -> bool:
+    for v in valores:
+        if not v:
+            continue
+        v_up = v.upper()
+        if "LÍMITE" in v_up or "LIMITE" in v_up:
             return True
     return False
 
@@ -238,18 +248,25 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
 
     mes_en_curso = ahora.strftime("%Y-%m")
 
-    # 1. Instituciones vigentes (con estado actual) y no Desvinculadas
+    # 1. Instituciones vigentes (con estado actual) y no Desvinculadas. Las que están
+    #    en 'Activa (límite de consultas)' se separan: ese número es un límite de
+    #    consultas asignado a mano por BICSA (no una carga real), así que su cierre
+    #    sale de CierreManualLimiteConsultas en vez de la detección automática.
     estados_actuales = db.query(EstadoActual).join(Institucion).filter(
         ~Institucion.nombre.contains("@")
     ).all()
 
     ids_permitidos = {}
+    ids_limite_consultas = {}
     for e in estados_actuales:
         if _es_desvinculada(e.estado, e.categoria_tabla):
             continue
+        if _es_limite_consultas(e.estado, e.categoria_tabla):
+            ids_limite_consultas[e.institucion_id] = e.institucion.nombre
+            continue
         ids_permitidos[e.institucion_id] = e.institucion.nombre
 
-    if not ids_permitidos:
+    if not ids_permitidos and not ids_limite_consultas:
         return {"meses": [], "mes_en_curso": mes_en_curso, "totales_mensuales": [], "instituciones": []}
 
     # 2. Snapshots oficiales (proceso de 07hs) por institución, ordenados por fecha
@@ -304,6 +321,36 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
             "cierres": cierres,
         })
 
+    # 4. Instituciones en 'Activa (límite de consultas)': su cierre sale de los
+    #    valores cargados a mano (ver obtener_limite_consultas), sin dividir entre 2
+    #    ni forward-fill — cada mes debe cargarse explícitamente.
+    if ids_limite_consultas:
+        manuales = db.query(CierreManualLimiteConsultas).filter(
+            CierreManualLimiteConsultas.institucion_id.in_(list(ids_limite_consultas.keys()))
+        ).order_by(CierreManualLimiteConsultas.mes.asc()).all()
+        manuales_por_institucion = defaultdict(list)
+        for m in manuales:
+            manuales_por_institucion[m.institucion_id].append(m)
+
+        for institucion_id, nombre in ids_limite_consultas.items():
+            registros = manuales_por_institucion.get(institucion_id, [])
+            if not registros:
+                continue  # Todavía no se cargó ningún cierre manual -> excluida
+            cierres = [{
+                "mes": r.mes,
+                "valor": r.valor,
+                "fecha_cierre": r.actualizado_el.strftime("%d/%m/%Y"),
+                "manual": True,
+            } for r in registros]
+            for c in cierres:
+                meses_set.add(c["mes"])
+            instituciones_resultado.append({
+                "institucion_id": institucion_id,
+                "nombre": nombre,
+                "cierres": cierres,
+                "limite_consultas": True,
+            })
+
     meses_ordenados = sorted(meses_set)
 
     # 5. Totales mensuales agregados (para el gráfico de tendencia)
@@ -357,10 +404,138 @@ def obtener_historial_cargas_institucion(db: Session, institucion_id: int) -> di
         if MES_INICIO_HISTORICO <= ev["fecha"].strftime("%Y-%m") <= mes_en_curso
     ]
 
+    # Cierres cargados a mano (institución en 'Activa (límite de consultas)'): se
+    # muestran con el valor tal cual, SIN dividir entre 2, marcados como "manual".
+    manuales = db.query(CierreManualLimiteConsultas).filter(
+        CierreManualLimiteConsultas.institucion_id == institucion_id
+    ).all()
+    for m in manuales:
+        eventos.append({
+            "fecha": m.actualizado_el.strftime("%Y-%m-%d"),
+            "valor": m.valor,
+            "manual": True,
+            "mes_cerrado": m.mes,
+        })
+    eventos.sort(key=lambda e: e["fecha"])
+
     return {
         "institucion_id": institucion_id,
         "nombre": inst.nombre,
         "eventos": eventos,
+    }
+
+
+def obtener_limite_consultas(db: Session) -> dict:
+    """
+    Instituciones actualmente en 'Activa (límite de consultas)': ese estado significa
+    que BICSA les asignó a mano un límite de consultas (a veces 0 para bloquear el
+    servicio, a veces ajustado hacia arriba o abajo) que NO refleja su carga real.
+    Por eso su cierre mensual se carga a mano en vez de detectarse automáticamente.
+
+    Devuelve, para cada una, los meses ya cargados y los meses pendientes (desde
+    MES_INICIO_HISTORICO hasta el último mes ya cerrado, sin contar el mes en curso).
+    """
+    from zoneinfo import ZoneInfo
+    try:
+        ahora = datetime.now(ZoneInfo("America/Asuncion")).replace(tzinfo=None)
+    except Exception:
+        ahora = datetime.now()
+    mes_en_curso = ahora.strftime("%Y-%m")
+    ultimo_mes_cerrado = _mes_anterior(mes_en_curso)
+
+    estados_actuales = db.query(EstadoActual).join(Institucion).filter(
+        ~Institucion.nombre.contains("@")
+    ).all()
+
+    instituciones_limite = {}
+    for e in estados_actuales:
+        if _es_limite_consultas(e.estado, e.categoria_tabla):
+            instituciones_limite[e.institucion_id] = {
+                "institucion_id": e.institucion_id,
+                "nombre": e.institucion.nombre,
+                "valor_sistema_actual": e.cant_max_busquedas,
+            }
+
+    if not instituciones_limite or ultimo_mes_cerrado < MES_INICIO_HISTORICO:
+        return {
+            "mes_en_curso": mes_en_curso,
+            "ultimo_mes_cerrado": ultimo_mes_cerrado,
+            "instituciones": [],
+            "total_pendientes": 0,
+        }
+
+    manuales = db.query(CierreManualLimiteConsultas).filter(
+        CierreManualLimiteConsultas.institucion_id.in_(list(instituciones_limite.keys()))
+    ).all()
+    manuales_por_institucion = defaultdict(dict)
+    for m in manuales:
+        manuales_por_institucion[m.institucion_id][m.mes] = {
+            "mes": m.mes,
+            "valor": m.valor,
+            "usuario_email": m.usuario_email,
+            "fecha_carga": m.actualizado_el.strftime("%d/%m/%Y %H:%M"),
+        }
+
+    meses_a_cubrir = []
+    cursor = MES_INICIO_HISTORICO
+    while cursor <= ultimo_mes_cerrado:
+        meses_a_cubrir.append(cursor)
+        cursor = _sumar_meses(cursor, 1)
+
+    total_pendientes = 0
+    resultado_instituciones = []
+    for institucion_id, info in instituciones_limite.items():
+        cargados = manuales_por_institucion.get(institucion_id, {})
+        pendientes = [m for m in meses_a_cubrir if m not in cargados]
+        total_pendientes += len(pendientes)
+        resultado_instituciones.append({
+            **info,
+            "cierres_cargados": sorted(cargados.values(), key=lambda c: c["mes"]),
+            "meses_pendientes": pendientes,
+        })
+
+    resultado_instituciones.sort(key=lambda i: (-len(i["meses_pendientes"]), i["nombre"]))
+
+    return {
+        "mes_en_curso": mes_en_curso,
+        "ultimo_mes_cerrado": ultimo_mes_cerrado,
+        "instituciones": resultado_instituciones,
+        "total_pendientes": total_pendientes,
+    }
+
+
+def guardar_cierre_manual_limite_consultas(db: Session, institucion_id: int, mes: str, valor: int, usuario_email: str) -> dict:
+    if not re.match(r"^\d{4}-\d{2}$", mes or ""):
+        raise ValueError("Formato de mes inválido, se espera YYYY-MM.")
+    if valor is None or valor < 0:
+        raise ValueError("El valor debe ser un número mayor o igual a 0.")
+
+    inst = db.query(Institucion).filter(Institucion.id == institucion_id).first()
+    if not inst:
+        raise ValueError("Institución no encontrada.")
+
+    registro = db.query(CierreManualLimiteConsultas).filter(
+        CierreManualLimiteConsultas.institucion_id == institucion_id,
+        CierreManualLimiteConsultas.mes == mes,
+    ).first()
+    if registro:
+        registro.valor = valor
+        registro.usuario_email = usuario_email
+    else:
+        registro = CierreManualLimiteConsultas(
+            institucion_id=institucion_id, mes=mes, valor=valor, usuario_email=usuario_email
+        )
+        db.add(registro)
+    db.commit()
+    db.refresh(registro)
+
+    return {
+        "institucion_id": institucion_id,
+        "nombre": inst.nombre,
+        "mes": mes,
+        "valor": valor,
+        "usuario_email": usuario_email,
+        "fecha_carga": registro.actualizado_el.strftime("%d/%m/%Y %H:%M"),
     }
 
 
@@ -409,6 +584,7 @@ def _calcular_filas_mes(reporte: dict, mes: str) -> list[dict]:
             "valor_anterior": anterior["valor"] if anterior else None,
             "variacion_abs": variacion_abs,
             "variacion_pct": variacion_pct,
+            "limite_consultas": bool(inst.get("limite_consultas")),
         })
 
     filas.sort(key=lambda f: f["valor_actual"], reverse=True)

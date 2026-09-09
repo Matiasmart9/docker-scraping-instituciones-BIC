@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   X, TrendingUp, TrendingDown, Minus, ArrowUpDown, Search, RefreshCw, BarChart3,
-  CalendarDays, FileSpreadsheet, Table2, Info
+  CalendarDays, FileSpreadsheet, Table2, Info, AlertTriangle
 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import CalendarioCargasModal from './CalendarioCargasModal';
 import PanoramaAnualView from './PanoramaAnualView';
+import LimiteConsultasView from './LimiteConsultasView';
 import { lockBodyScroll, unlockBodyScroll } from './scrollLock';
 
 const MESES_NOMBRE = [
@@ -58,8 +59,23 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
   const [sortOrder, setSortOrder] = useState('desc'); // desc = mayor a menor aporte
   const [searchQuery, setSearchQuery] = useState('');
   const [calendarioInstitucion, setCalendarioInstitucion] = useState(null); // { id, nombre }
-  const [vista, setVista] = useState('mensual'); // 'mensual' | 'anual'
+  const [vista, setVista] = useState('mensual'); // 'mensual' | 'anual' | 'limite'
   const [descargandoExcel, setDescargandoExcel] = useState(false);
+  const [pendientesLimiteConsultas, setPendientesLimiteConsultas] = useState(0);
+
+  const cargarPendientesLimiteConsultas = async () => {
+    try {
+      const res = await fetch('/api/v1/kpi-cargas/limite-consultas', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setPendientesLimiteConsultas(json.total_pendientes || 0);
+      }
+    } catch (e) {
+      // Silencioso: el badge simplemente no se actualiza
+    }
+  };
 
   const cargarDatos = async () => {
     setLoading(true);
@@ -102,6 +118,7 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
   useEffect(() => {
     if (isOpen) {
       sincronizarYCargar();
+      cargarPendientesLimiteConsultas();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
@@ -166,7 +183,8 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
           fechaCierre: actualEntry.fecha_cierre,
           valorAnterior,
           variacionAbs,
-          variacionPct
+          variacionPct,
+          limiteConsultas: !!inst.limite_consultas
         };
       })
       .filter(Boolean)
@@ -246,9 +264,27 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
           >
             <Table2 size={14} /> Vista Anual
           </button>
+          <button
+            className={`btn btn-sm ${vista === 'limite' ? 'btn-orange' : 'btn-secondary'}`}
+            onClick={() => setVista('limite')}
+            style={{ position: 'relative' }}
+          >
+            <AlertTriangle size={14} /> Activa (Límite Consultas)
+            {pendientesLimiteConsultas > 0 && (
+              <span style={{ marginLeft: '4px', background: '#EF4444', color: 'white', borderRadius: '50%', padding: '1px 6px', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                {pendientesLimiteConsultas}
+              </span>
+            )}
+          </button>
         </div>
 
-        {(loading || syncing) && !data ? (
+        {vista === 'limite' ? (
+          <LimiteConsultasView
+            token={token}
+            showToast={showToast}
+            onDataChanged={() => { cargarPendientesLimiteConsultas(); cargarDatos(); }}
+          />
+        ) : (loading || syncing) && !data ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-secondary)' }}>
             <RefreshCw size={28} className="spin" style={{ marginBottom: '10px' }} />
             <div>{syncing ? 'Sincronizando histórico de backups...' : 'Cargando datos...'}</div>
@@ -442,6 +478,14 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
                             <CalendarDays size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                             <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}>{r.nombre}</span>
                           </button>
+                          {r.limiteConsultas && (
+                            <span
+                              title="Institución en 'Activa (límite de consultas)': valor cargado manualmente, no proviene de la carga automática de XML"
+                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
+                            >
+                              MANUAL
+                            </span>
+                          )}
                         </td>
                         <td style={{ textAlign: 'center', fontFamily: 'monospace' }}>{numFmt(r.valorActual)}</td>
                         <td style={{ textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{r.fechaCierre}</td>

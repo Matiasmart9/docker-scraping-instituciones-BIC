@@ -72,7 +72,7 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
 
   const eventosPorFecha = useMemo(() => {
     const mapa = {};
-    eventos.forEach(e => { mapa[e.fecha] = e.valor; });
+    eventos.forEach(e => { mapa[e.fecha] = e; });
     return mapa;
   }, [eventos]);
 
@@ -144,12 +144,19 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
               {celdas.map((dia, idx) => {
                 if (dia === null) return <div key={idx} />;
                 const fechaStr = `${mesActivo.anio}-${String(mesActivo.mesIndex + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
-                const valor = eventosPorFecha[fechaStr];
-                const tieneCarga = valor !== undefined;
+                const evento = eventosPorFecha[fechaStr];
+                const tieneCarga = evento !== undefined;
+                const esManual = tieneCarga && evento.manual;
+                const colorAcento = esManual ? '#8B5CF6' : '#F97316';
+                const tooltip = !tieneCarga
+                  ? 'Sin carga registrada'
+                  : esManual
+                    ? `Cierre manual (límite de consultas) de ${evento.mes_cerrado}: ${numFmt(evento.valor)} — valor fijo, no dividido entre 2`
+                    : `Carga registrada: ${numFmt(evento.valor)}`;
                 return (
                   <div
                     key={idx}
-                    title={tieneCarga ? `Carga registrada: ${numFmt(valor)}` : 'Sin carga registrada'}
+                    title={tooltip}
                     style={{
                       minHeight: '54px',
                       borderRadius: '8px',
@@ -158,14 +165,14 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
                       flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'flex-start',
-                      background: tieneCarga ? 'rgba(249, 115, 22, 0.18)' : 'rgba(255,255,255,0.03)',
-                      border: tieneCarga ? '1px solid rgba(249, 115, 22, 0.5)' : '1px solid var(--border-color)',
+                      background: tieneCarga ? `${colorAcento}2E` : 'rgba(255,255,255,0.03)',
+                      border: tieneCarga ? `1px solid ${colorAcento}80` : '1px solid var(--border-color)',
                     }}
                   >
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: tieneCarga ? '#F97316' : 'var(--text-muted)' }}>{dia}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: tieneCarga ? colorAcento : 'var(--text-muted)' }}>{dia}</span>
                     {tieneCarga && (
                       <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', textAlign: 'center', lineHeight: 1.1 }}>
-                        {valor >= 1000 ? `${(valor / 1000).toFixed(0)}K` : valor}
+                        {evento.valor >= 1000 ? `${(evento.valor / 1000).toFixed(0)}K` : evento.valor}{esManual ? ' 🔒' : ''}
                       </span>
                     )}
                   </div>
@@ -176,6 +183,10 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
             <div style={{ marginTop: '16px', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(249, 115, 22, 0.18)', border: '1px solid rgba(249, 115, 22, 0.5)', display: 'inline-block' }} />
               Día con carga real de XML registrada (valor ya dividido entre 2)
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: 'rgba(139, 92, 246, 0.18)', border: '1px solid rgba(139, 92, 246, 0.5)', display: 'inline-block' }} />
+              Cierre manual (institución en "límite de consultas") — valor fijo, no dividido
             </div>
             <div style={{ marginTop: '8px', fontSize: '0.68rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
               <strong>Obs:</strong> las fechas marcadas corresponden a la Fecha_Informe que contiene el XML procesado por BICSA, no necesariamente al día exacto en que la institución realizó la carga.

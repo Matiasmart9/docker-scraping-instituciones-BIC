@@ -54,7 +54,7 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
           return { valor: valor ?? null, tendencia };
         });
         const tieneAlgunDato = valores.some(v => v.valor != null);
-        return { institucion_id: inst.institucion_id, nombre: inst.nombre, valores, tieneAlgunDato };
+        return { institucion_id: inst.institucion_id, nombre: inst.nombre, valores, tieneAlgunDato, limiteConsultas: !!inst.limite_consultas };
       })
       .filter(f => f.tieneAlgunDato)
       .sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -181,6 +181,14 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
                       <CalendarDays size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                       <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}>{f.nombre}</span>
                     </button>
+                    {f.limiteConsultas && (
+                      <span
+                        title="Institución en 'Activa (límite de consultas)': valor cargado manualmente"
+                        style={{ marginLeft: '6px', fontSize: '0.6rem', fontWeight: 700, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '5px', padding: '1px 4px' }}
+                      >
+                        M
+                      </span>
+                    )}
                   </td>
                   {f.valores.map((v, idx) => (
                     <td

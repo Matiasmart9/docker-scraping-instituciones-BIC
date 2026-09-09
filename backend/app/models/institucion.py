@@ -1,5 +1,5 @@
 import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Float, ARRAY
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Boolean, Text, Float, ARRAY, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -95,3 +95,24 @@ class RegistroUnificacion(Base):
     usuario_email = Column(String(255), nullable=False)
     
     institucion_nueva = relationship("Institucion")
+
+class CierreManualLimiteConsultas(Base):
+    """
+    Cierre mensual cargado a mano para instituciones en estado 'Activa (límite
+    de consultas)'. En ese estado, 'Búsquedas Máx.' es un límite de consultas
+    asignado manualmente por BICSA (a veces 0 para bloquear el servicio, a
+    veces ajustado hacia arriba o abajo) y NO refleja su carga real, por lo
+    que el KPI automático no puede usarlo. El valor acá es el aporte real,
+    ya definitivo (no se divide entre 2).
+    """
+    __tablename__ = "cierre_manual_limite_consultas"
+    __table_args__ = (UniqueConstraint("institucion_id", "mes", name="uq_cierre_manual_institucion_mes"),)
+
+    id = Column(Integer, primary_key=True, index=True)
+    institucion_id = Column(Integer, ForeignKey("instituciones.id"), nullable=False)
+    mes = Column(String(7), nullable=False)  # "YYYY-MM"
+    valor = Column(Integer, nullable=False)
+    usuario_email = Column(String(255), nullable=False)
+    actualizado_el = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    institucion = relationship("Institucion")
