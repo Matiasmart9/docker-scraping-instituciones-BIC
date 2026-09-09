@@ -174,26 +174,48 @@ def _detectar_eventos_carga(snapshots_ordenados: list[tuple[datetime, int, str]]
     al del snapshot que lo detectó (ej.: si el snapshot del 09/09 muestra un valor nuevo,
     la carga real ocurrió el 08/09).
 
-    Caso especial: si el PRIMER snapshot que vemos de una institución la encuentra en
+    Caso especial 1: si el PRIMER snapshot que vemos de una institución la encuentra en
     'Validación de XML', significa que recién se dio de alta y ese número inicial no es
     una carga confirmada (puede ser un valor de referencia asignado al ingresar). Ese
     primer valor se guarda como referencia para detectar cambios futuros, pero no se
     cuenta como evento — así una institución nueva no aparece en los reportes hasta que
     complete una carga real. Si la institución YA tenía historial antes de pasar a
     Validación de XML, esto no aplica (su último evento real sigue siendo válido).
+
+    Caso especial 2: si una institución SALE de 'Validación de XML' hacia cualquier otro
+    estado (ej. 'Activa (límite de consultas)') sin que 'Búsquedas Máx.' haya cambiado de
+    valor, ese momento igual se cuenta como el primer evento real: el número que era solo
+    de referencia queda confirmado en cuanto la institución deja de estar en validación,
+    aunque numéricamente sea idéntico al de referencia.
     """
     eventos = []
     valor_anterior = None
+    en_validacion_anterior = False
+    primer_snapshot = True
+
     for fecha_snapshot, cant_max, estado in snapshots_ordenados:
         cant_max = cant_max or 0
-        es_primer_snapshot = valor_anterior is None
-        if es_primer_snapshot and _es_validacion_xml(estado):
+        en_validacion_actual = _es_validacion_xml(estado)
+
+        if primer_snapshot:
+            if not en_validacion_actual:
+                fecha_evento = (fecha_snapshot - timedelta(days=1)).date()
+                eventos.append({"fecha": fecha_evento, "valor": round(cant_max / 2)})
             valor_anterior = cant_max
+            en_validacion_anterior = en_validacion_actual
+            primer_snapshot = False
             continue
-        if valor_anterior is None or cant_max != valor_anterior:
+
+        cambio_valor = cant_max != valor_anterior
+        salio_de_validacion = en_validacion_anterior and not en_validacion_actual
+
+        if cambio_valor or salio_de_validacion:
             fecha_evento = (fecha_snapshot - timedelta(days=1)).date()
             eventos.append({"fecha": fecha_evento, "valor": round(cant_max / 2)})
+
         valor_anterior = cant_max
+        en_validacion_anterior = en_validacion_actual
+
     return eventos
 
 
