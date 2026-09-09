@@ -39,19 +39,19 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
       .filter(inst => !q || inst.nombre.toLowerCase().includes(q))
       .map(inst => {
         const porMes = {};
-        inst.cierres.forEach(c => { porMes[c.mes] = c.valor; });
+        inst.cierres.forEach(c => { porMes[c.mes] = c; });
         const valores = MESES_ABREV.map((_, idx) => {
           const claveMes = `${selectedYear}-${String(idx + 1).padStart(2, '0')}`;
           const claveMesAnterior = idx === 0
             ? `${parseInt(selectedYear, 10) - 1}-12`
             : `${selectedYear}-${String(idx).padStart(2, '0')}`;
-          const valor = porMes[claveMes];
-          const valorAnterior = porMes[claveMesAnterior];
+          const valor = porMes[claveMes]?.valor;
+          const valorAnterior = porMes[claveMesAnterior]?.valor;
           let tendencia = null;
           if (valor != null && valorAnterior != null) {
             tendencia = valor > valorAnterior ? 'sube' : valor < valorAnterior ? 'baja' : 'igual';
           }
-          return { valor: valor ?? null, tendencia };
+          return { valor: valor ?? null, tendencia, manual: !!porMes[claveMes]?.manual };
         });
         const tieneAlgunDato = valores.some(v => v.valor != null);
         return { institucion_id: inst.institucion_id, nombre: inst.nombre, valores, tieneAlgunDato, limiteConsultas: !!inst.limite_consultas };
@@ -183,25 +183,36 @@ export default function PanoramaAnualView({ data, token, showToast, onSelectInst
                     </button>
                     {f.limiteConsultas && (
                       <span
-                        title="Institución en 'Activa (límite de consultas)': valor cargado manualmente"
+                        title="Institución en 'Activa (límite de consultas)': el monto puede no reflejar la carga real salvo en los meses con cierre manual confirmado (🔒 morado)"
                         style={{ marginLeft: '6px', fontSize: '0.6rem', fontWeight: 700, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '5px', padding: '1px 4px' }}
                       >
-                        M
+                        ⚠
                       </span>
                     )}
                   </td>
-                  {f.valores.map((v, idx) => (
-                    <td
-                      key={idx}
-                      style={{
-                        textAlign: 'center',
-                        fontFamily: 'monospace',
-                        fontSize: '0.78rem',
-                        color: v.valor == null ? 'var(--text-muted)' : v.tendencia === 'sube' ? '#34D399' : v.tendencia === 'baja' ? '#F87171' : 'var(--text-primary)'
-                      }}
-                    >
-                      {numFmt(v.valor)}
-                    </td>
+                  {f.valores.map((v, idx) => {
+                    const colorCelda = v.valor == null
+                      ? 'var(--text-muted)'
+                      : v.manual
+                        ? '#8B5CF6'
+                        : f.limiteConsultas
+                          ? '#F59E0B'
+                          : v.tendencia === 'sube' ? '#34D399' : v.tendencia === 'baja' ? '#F87171' : 'var(--text-primary)';
+                    return (
+                      <td
+                        key={idx}
+                        title={v.manual ? 'Cierre manual confirmado (límite de consultas)' : f.limiteConsultas && v.valor != null ? 'Valor automático: puede no reflejar la carga real' : undefined}
+                        style={{
+                          textAlign: 'center',
+                          fontFamily: 'monospace',
+                          fontSize: '0.78rem',
+                          color: colorCelda
+                        }}
+                      >
+                        {numFmt(v.valor)}{v.manual ? ' 🔒' : ''}
+                      </td>
+                    );
+                  })}
                   ))}
                 </tr>
               ))}

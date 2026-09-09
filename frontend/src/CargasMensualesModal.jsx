@@ -184,7 +184,8 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
           valorAnterior,
           variacionAbs,
           variacionPct,
-          limiteConsultas: !!inst.limite_consultas
+          limiteConsultas: !!inst.limite_consultas,
+          manual: !!actualEntry.manual
         };
       })
       .filter(Boolean)
@@ -478,12 +479,19 @@ export default function CargasMensualesModal({ isOpen, onClose, token, showToast
                             <CalendarDays size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                             <span style={{ textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: '3px' }}>{r.nombre}</span>
                           </button>
-                          {r.limiteConsultas && (
+                          {r.manual ? (
                             <span
-                              title="Institución en 'Activa (límite de consultas)': valor cargado manualmente, no proviene de la carga automática de XML"
-                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
+                              title="Cierre confirmado a mano en 'Activa (Límite Consultas)': este es el valor real del mes, ya cargado por el equipo"
+                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#8B5CF6', background: 'rgba(139, 92, 246, 0.15)', border: '1px solid rgba(139, 92, 246, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
                             >
                               MANUAL
+                            </span>
+                          ) : r.limiteConsultas && (
+                            <span
+                              title="Institución en 'Activa (límite de consultas)': el monto mostrado viene de Búsquedas Máx. y puede NO reflejar la carga real (es un límite asignado a mano por BICSA). Cargá el cierre confirmado en la pestaña 'Activa (Límite Consultas)'."
+                              style={{ marginLeft: '8px', fontSize: '0.65rem', fontWeight: 700, color: '#F59E0B', background: 'rgba(245, 158, 11, 0.15)', border: '1px solid rgba(245, 158, 11, 0.4)', borderRadius: '6px', padding: '1px 6px' }}
+                            >
+                              ⚠ LÍMITE
                             </span>
                           )}
                         </td>

@@ -249,9 +249,11 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
     mes_en_curso = ahora.strftime("%Y-%m")
 
     # 1. Instituciones vigentes (con estado actual) y no Desvinculadas. Las que están
-    #    en 'Activa (límite de consultas)' se separan: ese número es un límite de
-    #    consultas asignado a mano por BICSA (no una carga real), así que su cierre
-    #    sale de CierreManualLimiteConsultas en vez de la detección automática.
+    #    en 'Activa (límite de consultas)' se marcan aparte: 'Búsquedas Máx.' ahí es un
+    #    límite de consultas asignado a mano por BICSA (no una carga real), pero se las
+    #    sigue mostrando con la detección automática (útil para ver en el calendario
+    #    cuándo cargan XML) marcadas con una observación, y el cierre manual (cuando se
+    #    cargue) reemplaza el valor automático solo en el mes correspondiente.
     estados_actuales = db.query(EstadoActual).join(Institucion).filter(
         ~Institucion.nombre.contains("@")
     ).all()
@@ -261,12 +263,11 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
     for e in estados_actuales:
         if _es_desvinculada(e.estado, e.categoria_tabla):
             continue
+        ids_permitidos[e.institucion_id] = e.institucion.nombre
         if _es_limite_consultas(e.estado, e.categoria_tabla):
             ids_limite_consultas[e.institucion_id] = e.institucion.nombre
-            continue
-        ids_permitidos[e.institucion_id] = e.institucion.nombre
 
-    if not ids_permitidos and not ids_limite_consultas:
+    if not ids_permitidos:
         return {"meses": [], "mes_en_curso": mes_en_curso, "totales_mensuales": [], "instituciones": []}
 
     # 2. Snapshots oficiales (proceso de 07hs) por institución, ordenados por fecha
@@ -307,23 +308,28 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
                 })
             mes_cursor = _sumar_meses(mes_cursor, 1)
 
-    meses_set = set()
     instituciones_resultado = []
+    instituciones_por_id = {}
     for institucion_id, nombre in ids_permitidos.items():
         cierres = sorted(series_por_institucion.get(institucion_id, []), key=lambda c: c["mes"])
-        if not cierres:
+        if not cierres and institucion_id not in ids_limite_consultas:
             continue  # No registra carga -> excluida
-        for c in cierres:
-            meses_set.add(c["mes"])
-        instituciones_resultado.append({
+        entrada = {
             "institucion_id": institucion_id,
             "nombre": nombre,
             "cierres": cierres,
-        })
+        }
+        if institucion_id in ids_limite_consultas:
+            entrada["limite_consultas"] = True
+        instituciones_resultado.append(entrada)
+        instituciones_por_id[institucion_id] = entrada
 
-    # 4. Instituciones en 'Activa (límite de consultas)': su cierre sale de los
-    #    valores cargados a mano (ver obtener_limite_consultas), sin dividir entre 2
-    #    ni forward-fill — cada mes debe cargarse explícitamente.
+    # 4. Instituciones en 'Activa (límite de consultas)': 'Búsquedas Máx.' ahí es un
+    #    límite de consultas asignado a mano por BICSA, no una carga real. Cuando hay
+    #    un cierre cargado a mano (ver obtener_limite_consultas) para un mes puntual,
+    #    ese valor REEMPLAZA al automático de ese mes (sin dividir entre 2); los meses
+    #    sin cierre manual siguen mostrando el valor automático, ya marcado con la
+    #    observación 'limite_consultas' para que quede claro que puede no ser exacto.
     if ids_limite_consultas:
         manuales = db.query(CierreManualLimiteConsultas).filter(
             CierreManualLimiteConsultas.institucion_id.in_(list(ids_limite_consultas.keys()))
@@ -332,24 +338,32 @@ def obtener_reporte_cargas_mensuales(db: Session) -> dict:
         for m in manuales:
             manuales_por_institucion[m.institucion_id].append(m)
 
-        for institucion_id, nombre in ids_limite_consultas.items():
-            registros = manuales_por_institucion.get(institucion_id, [])
-            if not registros:
-                continue  # Todavía no se cargó ningún cierre manual -> excluida
-            cierres = [{
-                "mes": r.mes,
-                "valor": r.valor,
-                "fecha_cierre": r.actualizado_el.strftime("%d/%m/%Y"),
-                "manual": True,
-            } for r in registros]
-            for c in cierres:
-                meses_set.add(c["mes"])
-            instituciones_resultado.append({
-                "institucion_id": institucion_id,
-                "nombre": nombre,
-                "cierres": cierres,
-                "limite_consultas": True,
-            })
+        for institucion_id, registros in manuales_por_institucion.items():
+            entrada = instituciones_por_id.get(institucion_id)
+            if entrada is None:
+                entrada = {
+                    "institucion_id": institucion_id,
+                    "nombre": ids_limite_consultas[institucion_id],
+                    "cierres": [],
+                    "limite_consultas": True,
+                }
+                instituciones_resultado.append(entrada)
+                instituciones_por_id[institucion_id] = entrada
+
+            cierres_por_mes = {c["mes"]: c for c in entrada["cierres"]}
+            for r in registros:
+                cierres_por_mes[r.mes] = {
+                    "mes": r.mes,
+                    "valor": r.valor,
+                    "fecha_cierre": r.actualizado_el.strftime("%d/%m/%Y"),
+                    "manual": True,
+                }
+            entrada["cierres"] = sorted(cierres_por_mes.values(), key=lambda c: c["mes"])
+
+    meses_set = set()
+    for inst in instituciones_resultado:
+        for c in inst["cierres"]:
+            meses_set.add(c["mes"])
 
     meses_ordenados = sorted(meses_set)
 
@@ -585,6 +599,7 @@ def _calcular_filas_mes(reporte: dict, mes: str) -> list[dict]:
             "variacion_abs": variacion_abs,
             "variacion_pct": variacion_pct,
             "limite_consultas": bool(inst.get("limite_consultas")),
+            "manual": bool(actual.get("manual")),
         })
 
     filas.sort(key=lambda f: f["valor_actual"], reverse=True)
@@ -659,7 +674,12 @@ def generar_excel_cargas_mensuales(filas: list[dict], mes: str) -> io.BytesIO:
 
     row_idx = 5
     for fila in filas:
-        ws.cell(row=row_idx, column=1, value=fila["nombre"]).font = font_bold
+        nombre_celda = fila["nombre"]
+        if fila.get("manual"):
+            nombre_celda += " [CIERRE MANUAL]"
+        elif fila.get("limite_consultas"):
+            nombre_celda += " [⚠ LÍMITE CONSULTAS]"
+        ws.cell(row=row_idx, column=1, value=nombre_celda).font = font_bold
 
         c_actual = ws.cell(row=row_idx, column=2, value=fila["valor_actual"])
         c_actual.font = font_cell
@@ -729,7 +749,7 @@ def _calcular_matriz_anual(reporte: dict, anio: str) -> list[dict]:
     """
     filas = []
     for inst in reporte["instituciones"]:
-        por_mes = {c["mes"]: c["valor"] for c in inst["cierres"]}
+        por_mes = {c["mes"]: c for c in inst["cierres"]}
         valores = []
         tiene_dato = False
         for m in range(1, 13):
@@ -738,16 +758,20 @@ def _calcular_matriz_anual(reporte: dict, anio: str) -> list[dict]:
                 clave_anterior = f"{int(anio) - 1:04d}-12"
             else:
                 clave_anterior = f"{anio}-{m - 1:02d}"
-            valor = por_mes.get(clave)
-            valor_anterior = por_mes.get(clave_anterior)
+            valor = por_mes.get(clave, {}).get("valor")
+            valor_anterior = por_mes.get(clave_anterior, {}).get("valor")
             tendencia = None
             if valor is not None and valor_anterior is not None:
                 tendencia = "sube" if valor > valor_anterior else "baja" if valor < valor_anterior else "igual"
             if valor is not None:
                 tiene_dato = True
-            valores.append({"valor": valor, "tendencia": tendencia})
+            valores.append({
+                "valor": valor,
+                "tendencia": tendencia,
+                "manual": bool(por_mes.get(clave, {}).get("manual")),
+            })
         if tiene_dato:
-            filas.append({"nombre": inst["nombre"], "valores": valores})
+            filas.append({"nombre": inst["nombre"], "valores": valores, "limite_consultas": bool(inst.get("limite_consultas"))})
 
     filas.sort(key=lambda f: f["nombre"])
     return filas
@@ -772,6 +796,12 @@ def generar_excel_vista_anual(filas: list[dict], anio: str) -> io.BytesIO:
 
     FILL_BAJA = PatternFill(start_color="FEE2E2", end_color="FEE2E2", fill_type="solid")
     FONT_BAJA = Font(name="Calibri", size=10, bold=True, color="991B1B")
+
+    FILL_MANUAL = PatternFill(start_color="EDE9FE", end_color="EDE9FE", fill_type="solid")
+    FONT_MANUAL = Font(name="Calibri", size=10, bold=True, color="5B21B6")
+
+    FILL_LIMITE = PatternFill(start_color="FEF3C7", end_color="FEF3C7", fill_type="solid")
+    FONT_LIMITE = Font(name="Calibri", size=10, color="92400E")
 
     font_title = Font(name="Calibri", size=16, bold=True, color="0F172A")
     font_subtitle = Font(name="Calibri", size=10, italic=True, color="64748B")
@@ -811,7 +841,10 @@ def generar_excel_vista_anual(filas: list[dict], anio: str) -> io.BytesIO:
 
     row_idx = 5
     for fila in filas:
-        ws.cell(row=row_idx, column=1, value=fila["nombre"]).font = font_bold
+        nombre_celda = fila["nombre"]
+        if fila.get("limite_consultas"):
+            nombre_celda += " [⚠ LÍMITE CONSULTAS]"
+        ws.cell(row=row_idx, column=1, value=nombre_celda).font = font_bold
         for idx, v in enumerate(fila["valores"]):
             col_idx = idx + 2
             cell = ws.cell(row=row_idx, column=col_idx)
@@ -822,7 +855,13 @@ def generar_excel_vista_anual(filas: list[dict], anio: str) -> io.BytesIO:
             else:
                 cell.value = v["valor"]
                 cell.number_format = "#,##0"
-                if v["tendencia"] == "sube":
+                if v.get("manual"):
+                    cell.font = FONT_MANUAL
+                    cell.fill = FILL_MANUAL
+                elif fila.get("limite_consultas"):
+                    cell.font = FONT_LIMITE
+                    cell.fill = FILL_LIMITE
+                elif v["tendencia"] == "sube":
                     cell.font = FONT_SUBE
                     cell.fill = FILL_SUBE
                 elif v["tendencia"] == "baja":
