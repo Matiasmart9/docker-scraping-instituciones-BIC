@@ -11,6 +11,7 @@ from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
 from app.models.institucion import Institucion, EstadoActual, SnapshotDiario, CierreManualLimiteConsultas
+from app.services.business_logic import parse_fecha_bicsa
 
 logger = logging.getLogger("kpi_cargas")
 
@@ -229,6 +230,39 @@ def _detectar_eventos_carga(snapshots_ordenados: list[tuple[datetime, int, str]]
     return eventos
 
 
+def _detectar_eventos_carga_por_fecha_xml(
+    snapshots_ordenados: list[tuple[datetime, int, str, str | None]]
+) -> list[dict]:
+    """
+    Variante de _detectar_eventos_carga para instituciones en 'Activa (límite de
+    consultas)': ahí 'Búsquedas Máx.' es un límite asignado a mano por BICSA (puede
+    quedar fijo semanas aunque la institución siga cargando XML normalmente), así que
+    detectar cambios de ese valor no sirve para saber cuándo cargaron. La señal real
+    es el campo 'Última Carga XML' que informa BICSA: cada vez que esa fecha avanza,
+    hubo una carga real ese día, sin importar si el límite asignado cambió.
+
+    Recibe snapshots (fecha_snapshot, cant_max_busquedas, estado, fecha_ultima_carga)
+    ordenados ascendentemente y devuelve un evento por cada fecha de 'Última Carga
+    XML' distinta que aparece, usando esa fecha tal cual (ya es la fecha real de
+    carga informada por BICSA, no hace falta restarle un día). El valor de Búsquedas
+    Máx. se incluye solo a título informativo (dividido entre 2, puede no ser exacto).
+    """
+    eventos = []
+    fecha_carga_anterior = None
+
+    for _, cant_max, _estado, fecha_ultima_carga_str in snapshots_ordenados:
+        fecha_carga = parse_fecha_bicsa(fecha_ultima_carga_str)
+        if fecha_carga is None:
+            continue
+        fecha_carga_date = fecha_carga.date()
+        if fecha_carga_date == fecha_carga_anterior:
+            continue
+        eventos.append({"fecha": fecha_carga_date, "valor": round((cant_max or 0) / 2)})
+        fecha_carga_anterior = fecha_carga_date
+
+    return eventos
+
+
 def obtener_reporte_cargas_mensuales(db: Session) -> dict:
     """
     Calcula el cierre de carga mensual por institución a partir de los snapshots
@@ -406,12 +440,21 @@ def obtener_historial_cargas_institucion(db: Session, institucion_id: int) -> di
     if not inst:
         return {"institucion_id": institucion_id, "nombre": None, "eventos": []}
 
+    estado_actual = db.query(EstadoActual).filter(EstadoActual.institucion_id == institucion_id).first()
+    es_limite_consultas = bool(estado_actual and _es_limite_consultas(estado_actual.estado, estado_actual.categoria_tabla))
+
     snapshots = db.query(SnapshotDiario).filter(
         SnapshotDiario.institucion_id == institucion_id
     ).order_by(SnapshotDiario.fecha_snapshot.asc()).all()
-    snaps = [(s.fecha_snapshot, s.cant_max_busquedas, s.estado) for s in snapshots]
 
-    eventos_detectados = _detectar_eventos_carga(snaps)
+    if es_limite_consultas:
+        # 'Búsquedas Máx.' es un límite fijo asignado a mano acá: se usa la fecha real
+        # de 'Última Carga XML' para saber cuándo cargaron, en vez de cambios de valor.
+        snaps = [(s.fecha_snapshot, s.cant_max_busquedas, s.estado, s.fecha_ultima_carga) for s in snapshots]
+        eventos_detectados = _detectar_eventos_carga_por_fecha_xml(snaps)
+    else:
+        snaps = [(s.fecha_snapshot, s.cant_max_busquedas, s.estado) for s in snapshots]
+        eventos_detectados = _detectar_eventos_carga(snaps)
     eventos = [
         {"fecha": ev["fecha"].strftime("%Y-%m-%d"), "valor": ev["valor"]}
         for ev in eventos_detectados
