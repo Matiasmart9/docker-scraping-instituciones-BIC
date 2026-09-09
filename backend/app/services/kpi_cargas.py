@@ -2,6 +2,7 @@ import io
 import os
 import re
 import logging
+import calendar
 from datetime import datetime, date, timedelta
 from collections import defaultdict
 
@@ -55,6 +56,12 @@ def _sumar_meses(mes: str, delta: int) -> str:
     anio, m = (int(x) for x in mes.split("-"))
     idx = (anio * 12 + (m - 1)) + delta
     return f"{idx // 12:04d}-{(idx % 12) + 1:02d}"
+
+
+def _ultimo_dia_mes(mes: str) -> date:
+    anio, m = (int(x) for x in mes.split("-"))
+    _, ultimo_dia = calendar.monthrange(anio, m)
+    return date(anio, m, ultimo_dia)
 
 
 def _leer_backup_excel(filepath: str) -> list[dict]:
@@ -462,13 +469,16 @@ def obtener_historial_cargas_institucion(db: Session, institucion_id: int) -> di
     ]
 
     # Cierres cargados a mano (institución en 'Activa (límite de consultas)'): se
-    # muestran con el valor tal cual, SIN dividir entre 2, marcados como "manual".
+    # muestran con el valor tal cual, SIN dividir entre 2, marcados como "manual". Se
+    # ubican en el último día calendario del mes que cierran (no en la fecha en que
+    # se cargó a mano, que puede ser cualquier día posterior) para que coincidan con
+    # el cierre real de ese mes en el calendario.
     manuales = db.query(CierreManualLimiteConsultas).filter(
         CierreManualLimiteConsultas.institucion_id == institucion_id
     ).all()
     for m in manuales:
         eventos.append({
-            "fecha": m.actualizado_el.strftime("%Y-%m-%d"),
+            "fecha": _ultimo_dia_mes(m.mes).strftime("%Y-%m-%d"),
             "valor": m.valor,
             "manual": True,
             "mes_cerrado": m.mes,
