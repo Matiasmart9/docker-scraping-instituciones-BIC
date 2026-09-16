@@ -3,13 +3,13 @@ import {
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
   Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu,
-  Link as LinkIcon, BarChart3, UserMinus
+  Link as LinkIcon, BarChart3, Users
 } from 'lucide-react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 import UnificacionModal from "./UnificacionModal";
 import CargasMensualesModal from "./CargasMensualesModal";
-import DesvinculadasMensualesModal from "./DesvinculadasMensualesModal";
+import MovimientosInstitucionesModal from "./MovimientosInstitucionesModal";
 
 const API_BASE = '/api/v1';
 
@@ -179,7 +179,7 @@ export default function App() {
   const [backupCurrentPage, setBackupCurrentPage] = useState(1);
   const [showUnificacionModal, setShowUnificacionModal] = useState(false);
   const [showCargasMensualesModal, setShowCargasMensualesModal] = useState(false);
-  const [showDesvinculadasModal, setShowDesvinculadasModal] = useState(false);
+  const [showMovimientosModal, setShowMovimientosModal] = useState(false);
   const [desaparecidasCount, setDesaparecidasCount] = useState(0);
 
   const dropdownRef = useRef(null);
@@ -767,10 +767,10 @@ export default function App() {
                   style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
                   onClick={() => {
                     setShowContactosDropdown(false);
-                    setShowDesvinculadasModal(true);
+                    setShowMovimientosModal(true);
                   }}
                 >
-                  <UserMinus size={16} className="text-orange-500" /> Desvinculadas Mes
+                  <Users size={16} className="text-orange-500" /> Altas y Bajas Mes
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -1627,10 +1627,10 @@ export default function App() {
         showToast={showToast}
       />
 
-      {/* Modal de Desvinculadas Mes */}
-      <DesvinculadasMensualesModal
-        isOpen={showDesvinculadasModal}
-        onClose={() => setShowDesvinculadasModal(false)}
+      {/* Modal de Altas y Bajas Mes */}
+      <MovimientosInstitucionesModal
+        isOpen={showMovimientosModal}
+        onClose={() => setShowMovimientosModal(false)}
         token={token}
         showToast={showToast}
       />
