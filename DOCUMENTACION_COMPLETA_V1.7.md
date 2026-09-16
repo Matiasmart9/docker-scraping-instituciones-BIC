@@ -1,7 +1,9 @@
 # Documentación Arquitectónica - Portal Satélite BICSA V1.7
 
 ## 1. Visión General
-La V1.7 agrega un KPI de **Cierre de Carga Mensual**: un panel (Menú → "Cierre de Carga Mensual") pensado para reemplazar la verificación manual que hacía el equipo para saber cuánto cargó cada institución por mes y cómo varió respecto al mes anterior. Toma como única fuente los snapshots diarios generados por el proceso **FULL de las 07hs**, ya que las cargas de XML del día recién se procesan a medianoche en BICSA y se hacen visibles al día siguiente.
+La V1.7 agrega dos KPI nuevos:
+- **Cierre de Carga Mensual** (secciones 2-7): un panel (Menú → "Cierre de Carga Mensual") pensado para reemplazar la verificación manual que hacía el equipo para saber cuánto cargó cada institución por mes y cómo varió respecto al mes anterior. Toma como única fuente los snapshots diarios generados por el proceso **FULL de las 07hs**, ya que las cargas de XML del día recién se procesan a medianoche en BICSA y se hacen visibles al día siguiente.
+- **Altas y Bajas de Instituciones por Mes** (sección 8): un panel (Menú → "Altas y Bajas Mes") que detecta automáticamente instituciones nuevas y desvinculadas, sin necesidad de ningún backfill.
 
 ## 2. Flujo de Datos
 1. **Snapshot diario (07hs)**: `sync.py` sigue guardando en `snapshot_diario` la foto de cada institución únicamente en las corridas `FULL` (las corridas `LIGHT` de las 16hs no participan de este KPI).
@@ -51,3 +53,26 @@ Pestaña dedicada "Activa (Límite Consultas)" (junto a "Cierre Mensual" / "Vist
 Como "Búsquedas Máx." puede quedar fijo semanas enteras aunque la institución siga cargando XML con normalidad, usar los cambios de ese valor (como hace `_detectar_eventos_carga` para el resto de instituciones) para pintar el calendario dejaba afuera cargas reales. Para estas instituciones puntualmente, `obtener_historial_cargas_institucion` usa en cambio `_detectar_eventos_carga_por_fecha_xml`: cada vez que el campo **"Última Carga XML"** informado por BICSA avanza a una fecha nueva, se registra ese día como carga real en el calendario (el valor de Búsquedas Máx. se muestra solo a título informativo). El resto de las instituciones sigue con la detección por cambio de valor, sin cambios.
 
 Los cierres manuales, en el calendario, se ubican siempre en el **último día calendario del mes que cierran** (ej. el cierre de Agosto se marca el 31/08), independientemente de qué día se haya cargado a mano — así el mes correspondiente siempre muestra su cierre real al revisarlo, sin importar cuándo se tipeó.
+
+## 8. Altas y Bajas de Instituciones por Mes
+Panel (Menú → "Altas y Bajas Mes", ubicado justo después de "Cierre de Carga Mensual") que detecta instituciones que **ingresan** o **se desvinculan** del sistema, mes a mes. A diferencia del KPI de cargas, no necesita ningún backfill: se apoya en datos que el scraper ya escribe en cada corrida, así que funciona "hacia adelante" desde el momento en que se implementó, y hacia atrás para todo lo que ya estaba registrado.
+
+### 8.1. Detección de bajas
+Usa la tabla `HistorialCambios` (`backend/app/models/institucion.py`), que el scraper llena automáticamente cada vez que detecta un cambio de estado (`sync.py`, función `sync_scrape_data`). Se filtran los registros cuyo `estado_nuevo` contiene "DESVINCULAD", sin importar desde qué estado venía la institución.
+
+### 8.2. Detección de altas
+Usa `Institucion.creado_el`, que SQLAlchemy fija automáticamente al crear una fila nueva — es decir, la primera vez que el scraper ve un nombre que no coincide con ninguna institución existente ni con sus alias registrados (`Institucion.alias_nombres`, usado para manejar cambios de nombre sin crear duplicados).
+
+### 8.3. Filtro de ruido de inicialización
+Al revisar los datos reales se encontró que el día en que arrancó el sistema (siembra inicial de ~215 instituciones) generó cientos de "altas" y "bajas" de golpe el mismo día — ruido de inicialización, no movimientos reales. Un día real de operación nunca da de alta o de baja tantas instituciones a la vez, así que `backend/app/services/kpi_movimientos.py` descarta cualquier día calendario con más de `UMBRAL_DIA_MASIVO` (20) movimientos del mismo tipo antes de agrupar por mes.
+
+### 8.4. Endpoints (`/api/v1/kpi-movimientos`)
+- `GET /bajas/anual?anio=YYYY`: instituciones desvinculadas del año pedido, agrupadas en los 12 meses (con conteo por mes aunque no haya datos), más el detalle de cada una (nombre, fecha, estado anterior, última carga XML vigente o "Sin Datos" si nunca cargó).
+- `GET /bajas/exportar-excel?anio=YYYY`: exporta ese detalle a Excel con estilo profesional.
+- `GET /altas/anual?anio=YYYY`: mismo esquema para instituciones nuevas (nombre, fecha de alta, estado actual).
+- `GET /altas/exportar-excel?anio=YYYY`: exporta ese detalle a Excel.
+
+El año seleccionable se arma dinámicamente a partir de los años que realmente tienen datos (unión de altas y bajas) más el año en curso, igual que en Vista Anual — un año nuevo aparece sin cambios de código.
+
+### 8.5. Interfaz
+Un único panel (`frontend/src/MovimientosInstitucionesModal.jsx`) con: selector de año, gráfico de barras combinado (altas en verde, bajas en naranja) para los 12 meses del año seleccionado, y dos pestañas — "Bajas (Desvinculadas)" y "Altas (Nuevas)" — cada una con su propia tabla de detalle, buscador y botón de exportación a Excel independiente.

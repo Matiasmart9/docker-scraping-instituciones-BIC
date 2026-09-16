@@ -16,7 +16,7 @@ docker-portal-estado-institucionesBIC/
 ├── docker-compose.yml        # Orquestación de contenedores en local y prod
 ├── README.md                 # Guía de instalación y operaciones
 ├── DOCUMENTACION_COMPLETA_V1.6.md # Manual de usuario y arquitectura (histórico)
-├── DOCUMENTACION_COMPLETA_V1.7.md # Arquitectura del KPI de Cierre de Carga Mensual
+├── DOCUMENTACION_COMPLETA_V1.7.md # Arquitectura de los KPI de Cierre de Carga Mensual y Altas/Bajas de Instituciones
 ├── scraper/                  # Microservicio de Scraping & Scheduler
 │   ├── Dockerfile            # Imagen basada en Playwright (amd64/arm64)
 │   ├── requirements.txt
@@ -147,3 +147,4 @@ En `docker-compose.yml`, el contenedor `frontend` se adjunta a la red `coolify` 
 - **Regla de 72 Horas Hábiles**: Se calcula el tiempo restante (excluyendo sábados y domingos) desde `Fecha última carga` para advertir sobre instituciones que corren riesgo de ser **Bloqueadas** por BICSA.
 - **Auditoría de Nombres (V1.6)**: El sistema detecta automáticamente instituciones desaparecidas y proporciona una interfaz de "Resolución de Nombres" para que los Administradores puedan unificarlas y mantener un historial transparente de los traspasos.
 - **Cierre de Carga Mensual (V1.7)**: Nuevo panel (Menú → "Cierre de Carga Mensual") que audita cuánto aporta cada institución mes a mes, tomando como fuente única los snapshots del proceso FULL de las 07hs. Incluye manejo especial para instituciones en **"Activa (límite de consultas)"** (carga manual de su cierre real + detección de fechas de XML independiente de ese límite). Ver detalle completo en `DOCUMENTACION_COMPLETA_V1.7.md`.
+- **Altas y Bajas Mes (V1.7)**: Panel (Menú → "Altas y Bajas Mes") que detecta automáticamente instituciones nuevas (altas) y que pasan a estado **Desvinculada** (bajas), sin necesidad de backfill — se apoya en datos que el scraper ya registra en cada corrida. Incluye gráfico combinado de los 12 meses del año, filtro de año dinámico y exportación a Excel independiente por tipo de movimiento. Ver detalle completo en `DOCUMENTACION_COMPLETA_V1.7.md`.
