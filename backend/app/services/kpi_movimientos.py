@@ -7,7 +7,7 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from sqlalchemy.orm import Session
 
-from app.models.institucion import Institucion, EstadoActual, HistorialCambios
+from app.models.institucion import Institucion, EstadoActual, HistorialCambios, RegistroUnificacion
 
 MESES_NOMBRE = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -112,6 +112,16 @@ def obtener_reporte_altas(db: Session, anio: str) -> dict:
     en alguno) e incluye el estado actual de cada institución.
     """
     todas = db.query(Institucion).order_by(Institucion.creado_el.asc()).all()
+
+    # Cuando BICSA renombra una institución, el scraper la ve como un nombre
+    # nuevo y crea una fila propia (con su propia creado_el) antes de que un
+    # administrador la unifique con la institución original vía "Resolución
+    # de Nombres" (endpoint /unificar). Esa fila NO es una institución nueva:
+    # es la misma institución de siempre con otro nombre. Se descartan las
+    # instituciones que en algún momento fueron el destino de una unificación.
+    ids_unificados = {r.institucion_nueva_id for r in db.query(RegistroUnificacion.institucion_nueva_id).all()}
+    todas = [i for i in todas if i.id not in ids_unificados]
+
     altas = _filtrar_dias_masivos(todas, lambda i: i.creado_el)
 
     institucion_ids = [i.id for i in altas]
