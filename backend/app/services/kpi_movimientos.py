@@ -5,9 +5,10 @@ from collections import defaultdict
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models.institucion import Institucion, EstadoActual, HistorialCambios, RegistroUnificacion
+from app.models.institucion import Institucion, EstadoActual, HistorialCambios, SnapshotDiario
 
 MESES_NOMBRE = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -113,16 +114,42 @@ def obtener_reporte_altas(db: Session, anio: str) -> dict:
     """
     todas = db.query(Institucion).order_by(Institucion.creado_el.asc()).all()
 
-    # Cuando BICSA renombra una institución, el scraper la ve como un nombre
-    # nuevo y crea una fila propia (con su propia creado_el) antes de que un
-    # administrador la unifique con la institución original vía "Resolución
-    # de Nombres" (endpoint /unificar). Esa fila NO es una institución nueva:
-    # es la misma institución de siempre con otro nombre. Se descartan las
-    # instituciones que en algún momento fueron el destino de una unificación.
-    ids_unificados = {r.institucion_nueva_id for r in db.query(RegistroUnificacion.institucion_nueva_id).all()}
-    todas = [i for i in todas if i.id not in ids_unificados]
+    # Cuando BICSA renombra una institución, el scraper ve el nombre nuevo
+    # como una institución distinta y le crea una fila propia (con su propia
+    # creado_el) hasta que un administrador la unifica con la institución
+    # original vía "Resolución de Nombres" (endpoint /unificar), lo que
+    # traspasa TODO el historial y los snapshots de la institución vieja a la
+    # nueva. Para no perder de vista cuándo ingresó realmente, se usa como
+    # "fecha de alta efectiva" la más antigua entre su propia creado_el y
+    # cualquier snapshot/cambio de estado heredado de una institución
+    # unificada en ella — así una institución sigue apareciendo en el mes en
+    # que realmente ingresó, aunque BICSA le haya corregido el nombre después.
+    #
+    # Esto también resuelve solo el caso de instituciones VIEJAS unificadas
+    # por error de nombre (ej. una que ya existía desde la siembra inicial
+    # del sistema): su fecha de alta efectiva termina cayendo en ese día
+    # masivo de inicialización, que ya se descarta como ruido más abajo — sin
+    # necesidad de un caso especial aparte.
+    ids = [i.id for i in todas]
+    fecha_mas_antigua = {}
+    if ids:
+        for inst_id, fecha_min in (
+            db.query(SnapshotDiario.institucion_id, func.min(SnapshotDiario.fecha_snapshot))
+            .filter(SnapshotDiario.institucion_id.in_(ids)).group_by(SnapshotDiario.institucion_id).all()
+        ):
+            fecha_mas_antigua[inst_id] = fecha_min
+        for inst_id, fecha_min in (
+            db.query(HistorialCambios.institucion_id, func.min(HistorialCambios.fecha_deteccion))
+            .filter(HistorialCambios.institucion_id.in_(ids)).group_by(HistorialCambios.institucion_id).all()
+        ):
+            if inst_id not in fecha_mas_antigua or fecha_min < fecha_mas_antigua[inst_id]:
+                fecha_mas_antigua[inst_id] = fecha_min
 
-    altas = _filtrar_dias_masivos(todas, lambda i: i.creado_el)
+    def fecha_alta_efectiva(i):
+        heredada = fecha_mas_antigua.get(i.id)
+        return min(heredada, i.creado_el) if heredada else i.creado_el
+
+    altas = _filtrar_dias_masivos(todas, fecha_alta_efectiva)
 
     institucion_ids = [i.id for i in altas]
     estados_map = {}
@@ -134,11 +161,11 @@ def obtener_reporte_altas(db: Session, anio: str) -> dict:
         return {
             "institucion_id": i.id,
             "nombre": i.nombre,
-            "fecha": i.creado_el.strftime("%Y-%m-%d"),
+            "fecha": fecha_alta_efectiva(i).strftime("%Y-%m-%d"),
             "estado_actual": estados_map.get(i.id, "Desconocido"),
         }
 
-    return _agrupar_por_mes_y_anio(altas, lambda i: i.creado_el, anio, construir_fila)
+    return _agrupar_por_mes_y_anio(altas, fecha_alta_efectiva, anio, construir_fila)
 
 
 def _crear_libro_base(titulo: str, subtitulo: str, headers: list[str]):
