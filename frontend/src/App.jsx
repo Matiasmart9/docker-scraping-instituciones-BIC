@@ -3,12 +3,13 @@ import {
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
   Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu,
-  Link as LinkIcon, BarChart3
+  Link as LinkIcon, BarChart3, UserMinus
 } from 'lucide-react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 import UnificacionModal from "./UnificacionModal";
 import CargasMensualesModal from "./CargasMensualesModal";
+import DesvinculadasMensualesModal from "./DesvinculadasMensualesModal";
 
 const API_BASE = '/api/v1';
 
@@ -178,6 +179,7 @@ export default function App() {
   const [backupCurrentPage, setBackupCurrentPage] = useState(1);
   const [showUnificacionModal, setShowUnificacionModal] = useState(false);
   const [showCargasMensualesModal, setShowCargasMensualesModal] = useState(false);
+  const [showDesvinculadasModal, setShowDesvinculadasModal] = useState(false);
   const [desaparecidasCount, setDesaparecidasCount] = useState(0);
 
   const dropdownRef = useRef(null);
@@ -759,6 +761,16 @@ export default function App() {
                   }}
                 >
                   <BarChart3 size={16} className="text-orange-500" /> Cierre de Carga Mensual
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
+                  onClick={() => {
+                    setShowContactosDropdown(false);
+                    setShowDesvinculadasModal(true);
+                  }}
+                >
+                  <UserMinus size={16} className="text-orange-500" /> Desvinculadas Mes
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -1611,6 +1623,14 @@ export default function App() {
       <CargasMensualesModal
         isOpen={showCargasMensualesModal}
         onClose={() => setShowCargasMensualesModal(false)}
+        token={token}
+        showToast={showToast}
+      />
+
+      {/* Modal de Desvinculadas Mes */}
+      <DesvinculadasMensualesModal
+        isOpen={showDesvinculadasModal}
+        onClose={() => setShowDesvinculadasModal(false)}
         token={token}
         showToast={showToast}
       />
