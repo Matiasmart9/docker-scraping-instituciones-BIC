@@ -116,3 +116,25 @@ class CierreManualLimiteConsultas(Base):
     actualizado_el = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     institucion = relationship("Institucion")
+
+class ConfiguracionScraper(Base):
+    """
+    Días de la semana en que corre la corrida LIGHT del scraper (16hs). Es
+    una tabla de una sola fila: si no existe ninguna, se crea con los valores
+    por defecto (lunes a viernes activos, fin de semana no), que son el
+    comportamiento histórico antes de que esto fuera configurable. Si todos
+    los días quedan desactivados, el proceso LIGHT queda efectivamente
+    detenido. La corrida FULL (07hs, todos los días) no se ve afectada.
+    """
+    __tablename__ = "configuracion_scraper"
+
+    id = Column(Integer, primary_key=True, index=True)
+    lunes = Column(Boolean, default=True, nullable=False)
+    martes = Column(Boolean, default=True, nullable=False)
+    miercoles = Column(Boolean, default=True, nullable=False)
+    jueves = Column(Boolean, default=True, nullable=False)
+    viernes = Column(Boolean, default=True, nullable=False)
+    sabado = Column(Boolean, default=False, nullable=False)
+    domingo = Column(Boolean, default=False, nullable=False)
+    actualizado_el = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    actualizado_por = Column(String(255), nullable=True)

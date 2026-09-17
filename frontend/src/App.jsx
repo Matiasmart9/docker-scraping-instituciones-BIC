@@ -3,13 +3,14 @@ import {
   Building2, ShieldAlert, RefreshCw, FileSpreadsheet, Search, LogOut, 
   CheckCircle2, AlertTriangle, XCircle, Clock, Info, ShieldCheck, History, User,
   Sun, Moon, Phone, MessageCircle, ChevronDown, Trash2, Plus, Settings, Menu,
-  Link as LinkIcon, BarChart3, Users
+  Link as LinkIcon, BarChart3
 } from 'lucide-react';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "./firebase";
 import UnificacionModal from "./UnificacionModal";
 import CargasMensualesModal from "./CargasMensualesModal";
 import MovimientosInstitucionesModal from "./MovimientosInstitucionesModal";
+import ConfiguracionModal from "./ConfiguracionModal";
 
 const API_BASE = '/api/v1';
 
@@ -180,6 +181,7 @@ export default function App() {
   const [showUnificacionModal, setShowUnificacionModal] = useState(false);
   const [showCargasMensualesModal, setShowCargasMensualesModal] = useState(false);
   const [showMovimientosModal, setShowMovimientosModal] = useState(false);
+  const [showConfiguracionModal, setShowConfiguracionModal] = useState(false);
   const [desaparecidasCount, setDesaparecidasCount] = useState(0);
 
   const dropdownRef = useRef(null);
@@ -760,7 +762,7 @@ export default function App() {
                     setShowCargasMensualesModal(true);
                   }}
                 >
-                  <BarChart3 size={16} className="text-orange-500" /> Cierre de Carga Mensual
+                  <BarChart3 size={16} className="text-orange-500" /> Seguimiento Cargas Instituciones
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -770,7 +772,17 @@ export default function App() {
                     setShowMovimientosModal(true);
                   }}
                 >
-                  <Users size={16} className="text-orange-500" /> Altas y Bajas Mes
+                  <Building2 size={16} className="text-orange-500" /> Alta/Desvinc. Instituciones
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', justifyContent: 'flex-start', border: 'none', marginBottom: '4px' }}
+                  onClick={() => {
+                    setShowContactosDropdown(false);
+                    setShowConfiguracionModal(true);
+                  }}
+                >
+                  <Settings size={16} className="text-orange-500" /> Configuración
                 </button>
                 <button
                   className="btn btn-secondary"
@@ -1631,6 +1643,14 @@ export default function App() {
       <MovimientosInstitucionesModal
         isOpen={showMovimientosModal}
         onClose={() => setShowMovimientosModal(false)}
+        token={token}
+        showToast={showToast}
+      />
+
+      {/* Modal de Configuración */}
+      <ConfiguracionModal
+        isOpen={showConfiguracionModal}
+        onClose={() => setShowConfiguracionModal(false)}
         token={token}
         showToast={showToast}
       />

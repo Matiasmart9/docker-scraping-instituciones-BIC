@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import asyncio
+import requests
 from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, BackgroundTasks, HTTPException
@@ -25,14 +26,37 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://backend:8000")
 tz = pytz.timezone(TIMEZONE_STR)
 scheduler = AsyncIOScheduler(timezone=tz)
 
+DIAS_SEMANA = ["lunes", "martes", "miercoles", "jueves", "viernes", "sabado", "domingo"]
+
+def _dia_habilitado_para_light() -> bool:
+    """
+    Consulta la configuración de días de la corrida LIGHT (Menú -> Configuración
+    en el panel). Si el backend no responde (problema de red transitorio), se
+    prefiere igual ejecutar el scraping para no perder datos por eso -- solo
+    se omite la corrida cuando la configuración dice explícitamente que hoy
+    no está habilitado.
+    """
+    try:
+        res = requests.get(f"{BACKEND_URL}/api/v1/internal/configuracion-scraper", timeout=10)
+        res.raise_for_status()
+        config = res.json()
+        dia_actual = DIAS_SEMANA[datetime.now(tz).weekday()]
+        return bool(config.get(dia_actual, True))
+    except Exception as e:
+        logger.warning(f"No se pudo consultar la configuración de días del scraper, se ejecuta LIGHT de todos modos: {e}")
+        return True
+
 async def execute_scheduled_scrape(run_type: str = "FULL"):
+    if run_type == "LIGHT" and not _dia_habilitado_para_light():
+        logger.info("Corrida LIGHT omitida: hoy no está habilitado en la configuración del scraper.")
+        return
+
     logger.info(f"===> Ejecutando Scraping Programado ({run_type}) - Horario Local: {datetime.now(tz)}")
     scraper = BicsaScraper()
     result = await scraper.login_and_scrape()
-    
+
     # Enviar los resultados al servicio Backend para persistencia en BD
     try:
-        import requests
         backend_endpoint = f"{BACKEND_URL}/api/v1/internal/sync-scrape"
         payload = {
             "run_type": run_type,
@@ -59,10 +83,14 @@ async def lifespan(app: FastAPI):
         replace_existing=True
     )
     
-    # Light Scrape: 16:00 hs de Lunes a Viernes
+    # Light Scrape: 16:00 hs, todos los días -- el filtro de qué días
+    # efectivamente corre vive en la configuración (Menú -> Configuración en
+    # el panel), consultada en cada disparo por _dia_habilitado_para_light().
+    # El trigger dispara siempre para poder reaccionar a cambios de
+    # configuración sin reiniciar este contenedor.
     scheduler.add_job(
         execute_scheduled_scrape,
-        CronTrigger(hour=16, minute=0, day_of_week="mon-fri", timezone=tz),
+        CronTrigger(hour=16, minute=0, timezone=tz),
         kwargs={"run_type": "LIGHT"},
         id="light_intraday_scrape",
         replace_existing=True

@@ -179,3 +179,15 @@ def sync_scrape_data(payload: SyncScrapePayload, db: Session = Depends(get_db)):
         "cambios_detectados": cambios_registrados,
         "run_type": run_type
     }
+
+
+@router.get("/configuracion-scraper")
+def get_configuracion_scraper_interno(db: Session = Depends(get_db)):
+    """
+    Endpoint interno (sin autenticación, solo accesible dentro de la red de
+    Docker) que consulta el propio scraper antes de cada corrida LIGHT para
+    saber si hoy está habilitado (ver Menú -> Configuración en el panel).
+    """
+    from app.services.configuracion_scraper import obtener_configuracion_scraper, DIAS
+    config = obtener_configuracion_scraper(db)
+    return {dia: getattr(config, dia) for dia in DIAS}
