@@ -172,7 +172,7 @@ export default function CalendarioCargasModal({ isOpen, onClose, token, showToas
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: tieneCarga ? colorAcento : 'var(--text-muted)' }}>{dia}</span>
                     {tieneCarga && (
                       <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px', textAlign: 'center', lineHeight: 1.1, display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                        {evento.valor >= 1000 ? `${(evento.valor / 1000).toFixed(0)}K` : evento.valor}
+                        {numFmt(evento.valor)}
                         {esManual && <Lock size={9} style={{ flexShrink: 0 }} />}
                       </span>
                     )}

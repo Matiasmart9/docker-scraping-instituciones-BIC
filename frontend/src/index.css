@@ -151,6 +151,7 @@ body {
   font-size: 0.875rem;
   border: none;
   cursor: pointer;
+  text-align: left;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
